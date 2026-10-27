@@ -1,0 +1,601 @@
+:root {
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #614b41;
+  background: #fcf9f3;
+  font-synthesis: none;
+  --pink: #b86e78;
+  --line: #eae0d5;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background-image: radial-gradient(#bfa58b15 0.7px, transparent 0.7px);
+  background-size: 5px 5px;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 12px 18px;
+  background: var(--pink);
+  color: white;
+  transition:
+    background 0.18s,
+    transform 0.18s;
+}
+button:hover {
+  filter: brightness(0.96);
+  transform: translateY(-1px);
+}
+button:focus-visible,
+a:focus-visible,
+canvas:focus-visible {
+  outline: 3px solid #ad7757;
+  outline-offset: 3px;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+.subtle {
+  background: transparent;
+  color: #806c60;
+  border-color: var(--line);
+}
+header {
+  height: 100px;
+  padding: 20px 5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  gap: 20px;
+}
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  text-decoration: none;
+  color: #624e41;
+  font-family: Georgia, serif;
+  font-size: 19px;
+  line-height: 1.1;
+}
+.brand b {
+  font-weight: normal;
+  font-size: 23px;
+}
+.brand-icon {
+  font-size: 42px;
+  color: #b57979;
+}
+.header-note {
+  font-size: 12px;
+  color: #aa9787;
+  letter-spacing: 2px;
+}
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.header-actions button {
+  font-size: 12px;
+  padding: 9px 12px;
+}
+#saved {
+  font-size: 11px;
+  color: #968e72;
+  margin-right: 10px;
+}
+main {
+  max-width: 1400px;
+  margin: auto;
+  padding: 36px 5% 0;
+}
+.intro {
+  text-align: center;
+  margin-bottom: 34px;
+}
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #ad8d74;
+}
+h1 {
+  font-family: Georgia, "Songti SC", serif;
+  font-weight: 500;
+  font-size: 33px;
+  letter-spacing: 4px;
+  margin: 12px 0;
+}
+.intro p {
+  font-size: 13px;
+  color: #a18b7c;
+  letter-spacing: 2px;
+}
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(330px, 1fr);
+  gap: 28px;
+}
+.art-area {
+  min-width: 0;
+  position: relative;
+}
+.art-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin: 0 0 12px;
+  color: #958273;
+}
+.tiny {
+  font-size: 9px;
+  letter-spacing: 2px;
+}
+.canvas-wrap {
+  position: relative;
+  border: 1px solid #e8dfd2;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #f2e8da;
+  box-shadow: 0 8px 25px #76563d06;
+}
+canvas {
+  width: 100%;
+  display: block;
+  touch-action: none;
+}
+.canvas-label {
+  position: absolute;
+  bottom: 5%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font:
+    italic 18px Georgia,
+    serif;
+  color: #9a7b65;
+  pointer-events: none;
+  letter-spacing: 1px;
+}
+.art-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 17px;
+  font-size: 11px;
+  color: #9e8c7c;
+}
+.art-footer button {
+  white-space: nowrap;
+  min-width: 130px;
+}
+.art-footer button span {
+  margin-left: 20px;
+}
+aside {
+  background: #fffdf9;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  box-shadow: 0 8px 30px #76563d04;
+}
+.panel-title {
+  display: flex;
+  justify-content: space-between;
+  font-size: 16px;
+}
+.panel-title span:last-child {
+  color: #b39e8e;
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+nav {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  gap: 2px;
+  margin: 20px 0 25px;
+}
+nav button {
+  background: transparent;
+  color: #ae9a8c;
+  padding: 11px 0;
+  flex: 1;
+  font-size: 11px;
+  border-radius: 0;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+nav button.active {
+  color: #ac6872;
+  border-bottom-color: #ac6872;
+}
+#panel {
+  flex: 1;
+  min-height: 320px;
+}
+h2 {
+  font-family: Georgia, "Songti SC", serif;
+  font-weight: 500;
+  font-size: 26px;
+  margin: 5px 0 12px;
+}
+#panel h2 {
+  font-size: 20px;
+}
+#panel p {
+  font-size: 12px;
+  color: #ac9788;
+  line-height: 1.8;
+  margin: 0 0 24px;
+}
+.options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.option {
+  background: #fffdf9;
+  border: 1px solid var(--line);
+  color: #826c5b;
+  padding: 19px 10px;
+  min-height: 95px;
+  font-size: 12px;
+}
+.option.active {
+  background: #fbefeb;
+  border: 1.5px solid #c18a8e;
+  color: #a4626d;
+}
+.option svg {
+  display: block;
+  width: 65px;
+  height: 48px;
+  margin: 0 auto 10px;
+  overflow: visible;
+}
+.swatches {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 15px 0 28px;
+}
+.swatch {
+  width: 43px;
+  height: 43px;
+  padding: 0;
+  border: 4px solid #fff;
+  box-shadow: 0 0 0 1px var(--line);
+  border-radius: 50%;
+  position: relative;
+}
+.swatch.active {
+  box-shadow: 0 0 0 2px #b4777a;
+}
+.swatch.active:after {
+  content: "✓";
+  color: #795c4b;
+  text-shadow: 0 0 3px white;
+}
+.field-label {
+  font-size: 12px;
+}
+.panel-bottom {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  margin-top: 24px;
+  font-size: 12px;
+}
+.toppings {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.toppings .option {
+  padding: 9px 3px;
+  min-height: 75px;
+  font-size: 11px;
+}
+.toppings canvas {
+  width: 46px;
+  height: 46px;
+  margin: auto;
+  pointer-events: none;
+}
+.topping-categories {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 15px;
+  overflow: auto;
+}
+.topping-categories button {
+  padding: 8px 12px;
+  background: #f7f0e8;
+  color: #907665;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.topping-categories button.active {
+  background: #bb7c84;
+  color: #fff;
+}
+.text-input {
+  width: 100%;
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 12px;
+  margin: 12px 0;
+}
+.clear {
+  margin-top: 18px;
+  font-size: 11px;
+}
+.selection-tools {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+.selection-tools[hidden] {
+  display: none;
+}
+.selection-tools button {
+  padding: 8px 12px;
+  background: #f4e7de;
+  color: #866452;
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  margin: 28px 0 20px;
+  font-size: 10px;
+  color: #b49e8a;
+}
+footer span {
+  letter-spacing: 2px;
+  font-size: 9px;
+}
+dialog {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fffaf3;
+  color: #725345;
+  padding: 38px;
+  text-align: center;
+  max-width: min(500px, 92vw);
+  box-shadow: 0 25px 100px #60433430;
+}
+dialog::backdrop {
+  background: #68514765;
+  backdrop-filter: blur(5px);
+}
+dialog h2 {
+  font-size: 34px;
+  margin: 18px 0;
+}
+dialog p {
+  font-size: 13px;
+  line-height: 2;
+  color: #a18a78;
+}
+dialog small {
+  display: block;
+  margin-top: 24px;
+  font-size: 10px;
+  color: #b59d89;
+}
+.welcome-art {
+  font-size: 60px;
+  margin: 5px 0 30px;
+}
+#result {
+  max-width: min(560px, 94vw);
+  padding: 25px;
+}
+#result h2 {
+  font-size: 24px;
+}
+#result img {
+  width: 100%;
+  max-height: 48vh;
+  object-fit: contain;
+  border-radius: 10px;
+}
+#result button {
+  margin: 3px;
+  font-size: 12px;
+}
+#toast {
+  position: fixed;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #735c4ce8;
+  color: #fff;
+  padding: 12px 22px;
+  border-radius: 30px;
+  font-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 20;
+}
+#toast.show {
+  opacity: 1;
+}
+@media (min-width: 1400px) {
+  main {
+    padding-top: 40px;
+  }
+  .canvas-wrap {
+    max-height: none;
+  }
+  canvas {
+    max-height: none;
+    height: auto;
+  }
+}
+@media (max-width: 850px) {
+  header {
+    height: 80px;
+    padding: 15px 5%;
+  }
+  .header-note {
+    display: none;
+  }
+  .workspace {
+    grid-template-columns: minmax(0, 1.2fr) minmax(300px, 1fr);
+    gap: 18px;
+  }
+  main {
+    padding: 25px 4% 0;
+  }
+  aside {
+    padding: 18px;
+  }
+  .brand {
+    font-size: 15px;
+  }
+  .brand b {
+    font-size: 18px;
+  }
+  #saved {
+    display: none;
+  }
+  .intro {
+    margin-bottom: 25px;
+  }
+  h1 {
+    font-size: 27px;
+  }
+  .art-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (max-width: 650px) {
+  header {
+    height: 73px;
+    gap: 8px;
+  }
+  .brand-icon {
+    font-size: 30px;
+  }
+  .header-actions {
+    gap: 5px;
+  }
+  .header-actions button {
+    font-size: 10px;
+    padding: 8px;
+  }
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .intro {
+    margin-bottom: 22px;
+  }
+  .intro .eyebrow {
+    font-size: 8px;
+    letter-spacing: 2px;
+  }
+  h1 {
+    font-size: 25px;
+    letter-spacing: 2px;
+  }
+  .intro p {
+    font-size: 11px;
+  }
+  .canvas-wrap {
+    max-width: 480px;
+    margin: auto;
+  }
+  canvas {
+    aspect-ratio: 10/8;
+    object-fit: contain;
+  }
+  .canvas-label {
+    font-size: 15px;
+    bottom: 4%;
+  }
+  .art-footer {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
+  .art-footer > span {
+    max-width: 60%;
+    line-height: 1.7;
+  }
+  .art-footer button {
+    min-width: 110px;
+    padding: 11px;
+  }
+  .art-footer button span {
+    margin-left: 8px;
+  }
+  aside {
+    padding: 20px;
+  }
+  #panel {
+    min-height: 230px;
+  }
+  nav {
+    margin: 10px 0 20px;
+  }
+  .option {
+    min-height: 82px;
+    padding: 13px;
+  }
+  .options {
+    gap: 10px;
+  }
+  .option svg {
+    height: 35px;
+  }
+  .panel-bottom {
+    margin-top: 20px;
+  }
+  footer {
+    font-size: 9px;
+    justify-content: center;
+  }
+  footer span {
+    display: none;
+  }
+  dialog {
+    padding: 28px 20px;
+  }
+  .canvas-wrap canvas {
+    aspect-ratio: 10/9;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *:before,
+  *:after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

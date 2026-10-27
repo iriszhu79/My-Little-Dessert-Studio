@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#fcf6ef" />
+    <title>My Little Dessert Studio · 我的甜品工作室</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="./"
+        ><span class="brand-icon">♧</span
+        ><span>My Little<br /><b>Dessert Studio</b></span></a
+      ><span class="header-note">一点奶油，一点想象，一整个好心情。</span>
+      <div class="header-actions">
+        <span id="saved">已自动保存</span
+        ><button id="undo" class="subtle">↶ 撤销</button
+        ><button id="reset" class="subtle">重新制作</button>
+      </div>
+    </header>
+    <main>
+      <section class="intro">
+        <div class="eyebrow">THE LITTLE JOYS, MADE BY YOU</div>
+        <h1>把今天，做成甜的。</h1>
+        <p>没有标准配方，只有你喜欢的模样。</p>
+      </section>
+      <div class="workspace">
+        <section class="art-area">
+          <div class="art-heading">
+            <span>你的甜蜜画布</span><span class="tiny">MADE WITH LOVE ♡</span>
+          </div>
+          <div class="canvas-wrap">
+            <canvas
+              id="cake"
+              width="1000"
+              height="900"
+              aria-label="蛋糕创作画布，可拖动装饰"
+              tabindex="0"
+            ></canvas
+            ><span class="canvas-label">a little slice of happiness</span>
+          </div>
+          <div class="art-footer">
+            <span>✧ <span id="hint">选择喜欢的形状，开始你的创作</span></span
+            ><button id="finish">完成作品 <span>↗</span></button>
+          </div>
+          <div class="selection-tools" id="selectionTools" hidden>
+            <span>已选中装饰</span
+            ><button id="smaller" aria-label="缩小装饰">−</button
+            ><button id="larger" aria-label="放大装饰">＋</button
+            ><button id="rotate">旋转</button><button id="delete">删除</button>
+          </div>
+        </section>
+        <aside>
+          <div class="panel-title">
+            <span>创作小厨房</span><span id="stepCount">01 / 06</span>
+          </div>
+          <nav id="steps" aria-label="制作步骤"></nav>
+          <div id="panel"></div>
+          <div class="panel-bottom">
+            <button id="prev" class="subtle">← 上一步</button
+            ><button id="next">下一步 →</button>
+          </div>
+        </aside>
+      </div>
+      <footer>
+        慢慢来，让灵感和奶油一起绽放。<span>BAKED WITH A LITTLE MAGIC</span>
+      </footer>
+    </main>
+    <dialog id="welcome">
+      <div class="welcome-art">✧ 🍰 ✧</div>
+      <div class="eyebrow">WELCOME TO YOUR LITTLE STUDIO</div>
+      <h2>My Little<br />Dessert Studio</h2>
+      <p>做一份属于你的甜点吧。<br />选一点喜欢的，留一点甜蜜给今天。</p>
+      <button id="begin">开始制作 →</button
+      ><small>无需登录 · 本地保存 · 自由创作</small>
+    </dialog>
+    <dialog id="result">
+      <div class="eyebrow">YOUR SWEET LITTLE MASTERPIECE</div>
+      <h2>今天的甜蜜作品完成啦！</h2>
+      <img id="resultImage" alt="你的蛋糕成品" />
+      <p>把这一小份快乐，收藏起来吧。</p>
+      <button id="download">↓ 保存图片 PNG</button
+      ><button id="edit" class="subtle">继续编辑</button
+      ><button id="restart" class="subtle">重新制作</button>
+    </dialog>
+    <dialog id="confirm">
+      <h2>开启一份新的甜蜜？</h2>
+      <p>当前作品将被清除，记得先保存喜欢的作品。</p>
+      <button id="cancelReset" class="subtle">继续创作</button
+      ><button id="confirmReset">确认重新制作</button>
+    </dialog>
+    <div id="toast" role="status"></div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
