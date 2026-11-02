@@ -165,7 +165,7 @@ function stopEffect() {
   effect = null;
   $(".workspace").removeAttribute("aria-busy");
 }
-function play(kind, done, id) {
+function play(kind, done, id, previousBackground) {
   stopEffect();
   if (reducedMotion.matches) {
     paint();
@@ -181,7 +181,7 @@ function play(kind, done, id) {
             ? 320
             : 420,
     start = performance.now();
-  effect = { kind, progress: 0, id };
+  effect = { kind, progress: 0, id, previousBackground };
   $(".workspace").setAttribute("aria-busy", "true");
   function frame(now) {
     effect.progress = Math.min(1, (now - start) / duration);
@@ -281,6 +281,7 @@ const descriptions = [
   "Choose a cozy setting for your final photograph.",
 ];
 function selectStep(next) {
+  const previousBackground = step < 6 ? 0 : state.background;
   stopEffect();
   selected = null;
   step = next;
@@ -290,7 +291,12 @@ function selectStep(next) {
   $("#panel").classList.remove("materials-enter");
   void $("#panel").offsetWidth;
   $("#panel").classList.add("materials-enter");
-  play([1, 4].includes(step) ? "tools" : step >= 6 ? "scene" : "stage");
+  play(
+    [1, 4].includes(step) ? "tools" : step >= 6 ? "scene" : "stage",
+    undefined,
+    undefined,
+    previousBackground,
+  );
 }
 
 function button(label, active, fn, html) {
@@ -678,8 +684,9 @@ function panel() {
             n,
             state.background === i,
             () => {
+              const previousBackground = state.background;
               change(() => (state.background = i));
-              play("scene");
+              play("scene", undefined, undefined, previousBackground);
             },
             `<svg viewBox="0 0 80 55"><rect x="8" y="4" width="64" height="45" rx="5" fill="${["#f0e5d3", "#edc9ca", "#c49b74", "#dae1c6"][i]}"/>${i === 1 || i === 3 ? '<path d="M20 4V49M40 4V49M60 4V49M8 17H72M8 34H72" stroke="#ffffff70" stroke-width="7"/>' : i === 2 ? '<path d="M8 16H72M8 31H72M8 44H72" stroke="#8c63423d"/>' : ""}</svg>`,
           ),

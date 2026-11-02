@@ -628,45 +628,7 @@ export function drawTopping(
   }
   c.restore();
 }
-export function render(
-  c,
-  state,
-  {
-    selected = null,
-    exporting = false,
-    stage = 5,
-    presentation = false,
-    effect = null,
-    coverage = 0,
-  } = {},
-) {
-  stage = presentation ? 8 : stage;
-  const workbench = !presentation && stage < 6;
-  const showFilling = stage === 2 || (stage === 3 && !state.layered);
-  const useBase =
-    stage === 1 ||
-    stage === 2 ||
-    (stage === 3 && !state.layered) ||
-    (stage >= 5 && !state.layered && !state.frosted);
-  const showCream =
-    (useBase && state.baseCream) || (stage >= 4 && state.frosted);
-  const cream = useBase
-    ? state.customFilling || creamColors[state.fillingCream]
-    : state.customCream || creamColors[state.cream];
-  const spongeColor = state.customCake || cakeColors[state.cake];
-  const undercoat = stage === 4 && !state.layered && state.baseCream;
-  const fillingColor = state.customFilling || creamColors[state.fillingCream];
-  const strokes = useBase ? state.baseStrokes : state.frosting;
-  const progress = effect?.progress ?? 1;
-  const reveal = effect?.kind === "cream" ? progress : 1;
-  const drop =
-    effect?.kind === "sponge"
-      ? -75 * (1 - progress) ** 3
-      : effect?.kind === "layer"
-        ? -150 * (1 - progress) ** 3
-        : 0;
-  c.clearRect(0, 0, 1000, 900);
-  const bg = workbench ? 0 : state.background;
+function backdrop(c, bg) {
   c.fillStyle = ["#f3eadb", "#f5e0dc", "#cfa77f", "#e6ead5"][bg];
   c.fillRect(0, 0, 1000, 900);
   if (bg === 1 || bg === 3) {
@@ -714,6 +676,57 @@ export function render(
   light.addColorStop(1, "#fff8ee00");
   c.fillStyle = light;
   c.fillRect(0, 0, 1000, 900);
+}
+export function render(
+  c,
+  state,
+  {
+    selected = null,
+    exporting = false,
+    stage = 5,
+    presentation = false,
+    effect = null,
+    coverage = 0,
+  } = {},
+) {
+  stage = presentation ? 8 : stage;
+  const workbench = !presentation && stage < 6;
+  const showFilling = stage === 2 || (stage === 3 && !state.layered);
+  const useBase =
+    stage === 1 ||
+    stage === 2 ||
+    (stage === 3 && !state.layered) ||
+    (stage >= 5 && !state.layered && !state.frosted);
+  const showCream =
+    (useBase && state.baseCream) || (stage >= 4 && state.frosted);
+  const cream = useBase
+    ? state.customFilling || creamColors[state.fillingCream]
+    : state.customCream || creamColors[state.cream];
+  const spongeColor = state.customCake || cakeColors[state.cake];
+  const undercoat = stage === 4 && !state.layered && state.baseCream;
+  const fillingColor = state.customFilling || creamColors[state.fillingCream];
+  const strokes = useBase ? state.baseStrokes : state.frosting;
+  const progress = effect?.progress ?? 1;
+  const reveal = effect?.kind === "cream" ? progress : 1;
+  const drop =
+    effect?.kind === "sponge"
+      ? -75 * (1 - progress) ** 3
+      : effect?.kind === "layer"
+        ? -150 * (1 - progress) ** 3
+        : 0;
+  c.clearRect(0, 0, 1000, 900);
+  const bg = workbench ? 0 : state.background;
+  backdrop(c, bg);
+  if (
+    effect?.kind === "scene" &&
+    effect.previousBackground !== undefined &&
+    effect.previousBackground !== bg
+  ) {
+    c.save();
+    c.globalAlpha = 1 - progress;
+    backdrop(c, effect.previousBackground);
+    c.restore();
+  }
   c.save();
   const camera = presentation
     ? 0.91 + (effect?.kind === "finish" ? 0.09 * (1 - progress) : 0)
