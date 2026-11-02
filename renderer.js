@@ -5,28 +5,30 @@ export const creamColors = [
   "#d9cae9",
   "#f6df97",
   "#c4dfe9",
+  "#86543e",
+  "#a9ba80",
 ];
 export const toppingNames = {
-  strawberry: "草莓",
-  strawberryHalf: "半颗草莓",
-  strawberryFan: "草莓扇片",
-  kiwi: "猕猴桃片",
-  orange: "香橙切片",
-  mango: "芒果扇片",
-  mangoCubes: "芒果丁",
-  banana: "香蕉片",
-  mint: "薄荷叶",
-  blueberry: "蓝莓",
-  cherry: "樱桃",
-  lemon: "柠檬片",
-  cookie: "曲奇",
-  chocolate: "巧克力",
-  macaron: "马卡龙",
-  flower: "小花",
-  bow: "蝴蝶结",
-  pearls: "糖珠",
-  cream: "奶油裱花",
-  text: "甜蜜文字",
+  strawberry: "Strawberry",
+  strawberryHalf: "Strawberry half",
+  strawberryFan: "Strawberry fan",
+  kiwi: "Kiwi slice",
+  orange: "Orange wedge",
+  mango: "Mango fan",
+  mangoCubes: "Mango cubes",
+  banana: "Banana slices",
+  mint: "Mint leaves",
+  blueberry: "Blueberry",
+  cherry: "Cherries",
+  lemon: "Lemon slice",
+  cookie: "Cookie",
+  chocolate: "Chocolate",
+  macaron: "Macaron",
+  flower: "Daisy",
+  bow: "Ribbon bow",
+  pearls: "Sugar pearls",
+  cream: "Cream swirl",
+  text: "Sweet lettering",
 };
 export function cakePath(shape, scale = 1) {
   const p = new Path2D();
@@ -287,6 +289,96 @@ function fruitSlice(c, type) {
   }
   return false;
 }
+export function drawBowl(c, x, y, color, scale = 1) {
+  c.save();
+  c.translate(x, y);
+  c.scale(scale, scale);
+  c.save();
+  c.filter = "blur(7px)";
+  ellipse(c, 6, 40, 83, 16, "#87654520");
+  c.restore();
+  c.beginPath();
+  c.moveTo(-85, -3);
+  c.bezierCurveTo(-82, 65, 77, 65, 85, -3);
+  c.closePath();
+  const g = c.createLinearGradient(-85, 0, 85, 30);
+  g.addColorStop(0, "#d6d9d3");
+  g.addColorStop(0.4, "#fffdf5");
+  g.addColorStop(1, "#c4cbbf");
+  c.fillStyle = g;
+  c.fill();
+  ellipse(c, 0, -3, 85, 33, "#fefcf2");
+  ellipse(c, 0, -4, 75, 26, color);
+  c.beginPath();
+  c.ellipse(-4, -7, 58, 17, 0, 0.3, 5.6);
+  stroke(c, "#fff9e785", 3);
+  c.beginPath();
+  c.ellipse(3, 0, 31, 10, 0, 2.7, 6);
+  stroke(c, "#fff9e75c", 2);
+  c.restore();
+}
+function spatula(c, x, y, rotation = -0.7, scale = 1) {
+  c.save();
+  c.translate(x, y);
+  c.rotate(rotation);
+  c.scale(scale, scale);
+  c.save();
+  c.shadowBlur = 8;
+  c.shadowColor = "#7a56382b";
+  c.shadowOffsetY = 5;
+  c.fillStyle = "#93674b";
+  c.beginPath();
+  c.roundRect(-9, 6, 18, 74, 9);
+  c.fill();
+  c.fillStyle = "#d0b28d";
+  c.fillRect(-8, 8, 16, 8);
+  const g = c.createLinearGradient(-21, 0, 20, 0);
+  g.addColorStop(0, "#e2e4dc");
+  g.addColorStop(0.4, "#fffdf5");
+  g.addColorStop(1, "#b7c1b8");
+  c.fillStyle = g;
+  c.beginPath();
+  c.roundRect(-20, -84, 40, 100, 16);
+  c.fill();
+  c.restore();
+  c.beginPath();
+  c.moveTo(-9, -67);
+  c.lineTo(-9, -4);
+  stroke(c, "#ffffffc9", 3);
+  c.restore();
+}
+const geometry = document.createElement("canvas").getContext("2d"),
+  edges = new Map();
+function surfaceEdge(shape, a) {
+  const key = shape + ":" + a;
+  if (edges.has(key)) return edges.get(key);
+  let lo = 0,
+    hi = 380;
+  const path = cakePath(shape);
+  for (let i = 0; i < 11; i++) {
+    const r = (lo + hi) / 2;
+    if (geometry.isPointInPath(path, Math.cos(a) * r, Math.sin(a) * r)) lo = r;
+    else hi = r;
+  }
+  const p = { x: Math.cos(a) * lo * 0.985, y: Math.sin(a) * lo * 0.985 };
+  edges.set(key, p);
+  return p;
+}
+function blend(a, b, t) {
+  return (
+    "#" +
+    [1, 3, 5]
+      .map((i) =>
+        Math.round(
+          parseInt(a.slice(i, i + 2), 16) * (1 - t) +
+            parseInt(b.slice(i, i + 2), 16) * t,
+        )
+          .toString(16)
+          .padStart(2, "0"),
+      )
+      .join("")
+  );
+}
 export function drawTopping(
   c,
   type,
@@ -539,12 +631,40 @@ export function drawTopping(
 export function render(
   c,
   state,
-  { selected = null, exporting = false, stage = 5, presentation = false } = {},
+  {
+    selected = null,
+    exporting = false,
+    stage = 5,
+    presentation = false,
+    effect = null,
+    coverage = 0,
+  } = {},
 ) {
+  stage = presentation ? 8 : stage;
   const workbench = !presentation && stage < 6;
   const showFilling = stage === 2 || (stage === 3 && !state.layered);
-  const showCream = showFilling || (stage >= 4 && state.frosted);
-  const cream = creamColors[showFilling ? state.fillingCream : state.cream];
+  const useBase =
+    stage === 1 ||
+    stage === 2 ||
+    (stage === 3 && !state.layered) ||
+    (stage >= 5 && !state.layered && !state.frosted);
+  const showCream =
+    (useBase && state.baseCream) || (stage >= 4 && state.frosted);
+  const cream = useBase
+    ? state.customFilling || creamColors[state.fillingCream]
+    : state.customCream || creamColors[state.cream];
+  const spongeColor = state.customCake || cakeColors[state.cake];
+  const undercoat = stage === 4 && !state.layered && state.baseCream;
+  const fillingColor = state.customFilling || creamColors[state.fillingCream];
+  const strokes = useBase ? state.baseStrokes : state.frosting;
+  const progress = effect?.progress ?? 1;
+  const reveal = effect?.kind === "cream" ? progress : 1;
+  const drop =
+    effect?.kind === "sponge"
+      ? -75 * (1 - progress) ** 3
+      : effect?.kind === "layer"
+        ? -150 * (1 - progress) ** 3
+        : 0;
   c.clearRect(0, 0, 1000, 900);
   const bg = workbench ? 0 : state.background;
   c.fillStyle = ["#f3eadb", "#f5e0dc", "#cfa77f", "#e6ead5"][bg];
@@ -594,6 +714,15 @@ export function render(
   light.addColorStop(1, "#fff8ee00");
   c.fillStyle = light;
   c.fillRect(0, 0, 1000, 900);
+  c.save();
+  const camera = presentation
+    ? 0.91 + (effect?.kind === "finish" ? 0.09 * (1 - progress) : 0)
+    : effect?.kind === "scene"
+      ? 1 + 0.025 * (1 - progress)
+      : 1;
+  c.translate(500, 450);
+  c.scale(camera, camera);
+  c.translate(-500, -450);
   // Soft cast shadow and handmade porcelain.
   c.save();
   c.filter = "blur(18px)";
@@ -679,15 +808,21 @@ export function render(
   c.translate(500, 402);
   const p = cakePath(state.shape);
   const depth = state.layered && stage >= 3 ? 145 : 85;
-  const base = stage >= 4 && state.frosted ? cream : cakeColors[state.cake];
+  const base =
+    stage >= 4 && state.frosted
+      ? blend(spongeColor, cream, reveal)
+      : stage === 4
+        ? blend(spongeColor, cream, (coverage / 100) * 0.72)
+        : spongeColor;
   // Extrude the same silhouette downwards, retaining a recognizable shape.
   for (let y = depth; y >= 0; y -= 2) {
     c.save();
-    c.translate(0, y);
+    c.translate(0, y + (effect?.kind === "layer" ? (y < 60 ? drop : 0) : drop));
     c.fillStyle = base;
     c.fill(p);
     c.restore();
   }
+  c.translate(0, drop);
   c.save();
   c.clip(bodyPath(state.shape, depth));
   c.translate(0, 8);
@@ -697,6 +832,33 @@ export function render(
   side.addColorStop(1, "#56332036");
   c.fillStyle = side;
   c.fillRect(-300, 0, 600, 270);
+  c.restore();
+  // The side grain and faint frosting ridges share the same silhouette as every sponge.
+  c.save();
+  c.clip(bodyPath(state.shape, depth));
+  const sideOnly = new Path2D();
+  sideOnly.rect(-400, -250, 800, 700);
+  sideOnly.addPath(p);
+  c.clip(sideOnly, "evenodd");
+  if (stage >= 4 && state.frosted) {
+    for (let y = 55; y < 305; y += 23) {
+      c.beginPath();
+      c.moveTo(-280, y);
+      c.quadraticCurveTo(0, y + 18, 280, y - 6);
+      stroke(c, "#fff9e51f", 2);
+    }
+  } else {
+    for (let i = 0; i < 170; i++) {
+      ellipse(
+        c,
+        ((i * 137.6) % 540) - 270,
+        ((i * 61.3) % 300) - 15,
+        0.6 + (i % 3) * 0.3,
+        0.7,
+        i % 2 ? "#7e522115" : "#fff0bf26",
+      );
+    }
+  }
   c.restore();
   // Layers on the front of the sponge, clipped to the extruded body.
   c.save();
@@ -708,8 +870,9 @@ export function render(
   }
   c.clip(body);
   c.translate(0, 68);
-  c.strokeStyle =
-    stage >= 4 && state.frosted
+  c.strokeStyle = !state.layered
+    ? "#00000000"
+    : stage >= 4 && state.frosted
       ? "#fff7e44d"
       : creamColors[state.fillingCream] + "e0";
   c.lineWidth = 10;
@@ -720,7 +883,7 @@ export function render(
   c.stroke(p);
   c.restore();
   // Naked sponge before frosting: warm baked edge and a soft, porous surface.
-  c.fillStyle = cakeColors[state.cake];
+  c.fillStyle = undercoat ? fillingColor : spongeColor;
   c.fill(p);
   const sponge = c.createRadialGradient(-70, -65, 20, 0, 0, 290);
   sponge.addColorStop(0, "#fff3c67a");
@@ -733,7 +896,7 @@ export function render(
   c.stroke(p);
   c.save();
   c.clip(p);
-  for (let i = 0; i < 280; i++) {
+  for (let i = 0; i < (undercoat ? 0 : 280); i++) {
     const x = ((i * 173.17) % 500) - 250,
       y = ((i * 97.31) % 330) - 165;
     ellipse(
@@ -747,6 +910,12 @@ export function render(
   }
   c.restore();
   if (showCream) {
+    c.save();
+    if (reveal < 1) {
+      c.beginPath();
+      c.rect(-330, -220, 660, 440 * reveal);
+      c.clip();
+    }
     c.save();
     c.shadowColor = "#9c6c4840";
     c.shadowBlur = 8;
@@ -762,8 +931,7 @@ export function render(
     c.stroke(p);
     for (let i = 0; i < 15; i++) {
       let a = 0.12 + (i * Math.PI) / 15;
-      const x = Math.cos(a) * 235,
-        y = Math.sin(a) * 155;
+      const { x, y } = surfaceEdge(state.shape, a);
       c.beginPath();
       c.moveTo(x, y - 7);
       c.quadraticCurveTo(x + 9, y + 48 + (i % 3) * 7, x + 16, y - 4);
@@ -784,7 +952,7 @@ export function render(
     c.save();
     c.clip(p);
     c.strokeStyle = "#fff9ed80";
-    c.lineWidth = 7;
+    c.lineWidth = 4;
     for (const [rx, ry, a, b] of [
       [205, 126, 0.2, 4.9],
       [165, 95, 2.9, 6.4],
@@ -795,7 +963,8 @@ export function render(
       c.stroke();
     }
     c.restore();
-  } else if (stage === 4) {
+    c.restore();
+  } else if (stage >= 1 && strokes?.length) {
     // Clip vector brush strokes to the current silhouette, including heart/flower edges.
     c.save();
     c.clip(p);
@@ -804,7 +973,7 @@ export function render(
     c.lineWidth = 86;
     c.lineCap = "round";
     c.lineJoin = "round";
-    for (const points of state.frosting) {
+    for (const points of strokes) {
       if (!points.length) continue;
       c.beginPath();
       c.moveTo(points[0].x, points[0].y);
@@ -831,26 +1000,54 @@ export function render(
     c.lineWidth = 3;
     c.setLineDash([4, 5]);
     for (let i = 0; i < state.slices; i++) {
+      const cut =
+        effect?.kind === "slice"
+          ? Math.min(1, Math.max(0, progress * state.slices - i))
+          : 1;
+      if (!cut) continue;
       const a = -Math.PI / 2 + (i * Math.PI * 2) / state.slices;
       c.beginPath();
       c.moveTo(0, 0);
-      c.lineTo(Math.cos(a) * 500, Math.sin(a) * 500);
+      c.lineTo(Math.cos(a) * 500 * cut, Math.sin(a) * 500 * cut);
       c.stroke();
     }
     c.restore();
+    if (effect?.kind === "slice" && state.slices) {
+      const a =
+        -Math.PI / 2 +
+        (Math.floor(progress * state.slices) * Math.PI * 2) / state.slices;
+      spatula(c, Math.cos(a) * 140, Math.sin(a) * 100, -a + Math.PI / 2, 0.7);
+    }
   }
   c.restore();
   const visibleToppings = showFilling
     ? state.fillingToppings
     : stage >= 5
-      ? state.toppings
+      ? [
+          ...(!state.layered && !state.frosted ? state.fillingToppings : []),
+          ...state.toppings,
+        ]
       : [];
   for (const t of visibleToppings) {
     c.save();
     c.shadowColor = "#61432d35";
-    c.shadowBlur = 4;
-    c.shadowOffsetY = 4;
-    drawTopping(c, t.type, 500 + t.x, 402 + t.y, t.scale, t.rotation, t.text);
+    c.shadowBlur = 3;
+    c.shadowOffsetY = 3;
+    const fall =
+      effect?.kind === "topping" && effect.id === t.id
+        ? -35 * (1 - progress) ** 2
+        : 0;
+    c.translate(500 + t.x, 402 + t.y + drop + fall);
+    c.scale(1, 0.82);
+    drawTopping(
+      c,
+      t.type,
+      0,
+      0,
+      t.scale * (0.96 + t.y * 0.0006),
+      t.rotation,
+      t.text,
+    );
     c.restore();
     if (!exporting && t.id === selected) {
       c.save();
@@ -859,9 +1056,14 @@ export function render(
       c.strokeStyle = "#ac6d79";
       c.lineWidth = 2;
       c.setLineDash([5, 5]);
-      c.strokeRect(-43 * t.scale, -43 * t.scale, 86 * t.scale, 86 * t.scale);
+      c.strokeRect(-43 * t.scale, -35 * t.scale, 86 * t.scale, 70 * t.scale);
       c.restore();
     }
+  }
+  if (workbench && [1, 4].includes(stage)) {
+    const travel = effect?.kind === "tools" ? 100 * (1 - progress) ** 3 : 0;
+    drawBowl(c, 210 - travel, 735, cream, 0.85);
+    spatula(c, 796 + travel, 700, -0.6, 0.9);
   }
   if (!workbench) {
     // Botanical sprig to frame the composition without using external assets.
@@ -882,6 +1084,15 @@ export function render(
         c.restore();
       }
     }
+    c.restore();
+  }
+  c.restore();
+  if (presentation) {
+    c.save();
+    c.font = "italic 27px Georgia, serif";
+    c.textAlign = "center";
+    c.fillStyle = "#91765f";
+    c.fillText(state.name || "My little cake", 500, 861, 650);
     c.restore();
   }
 }

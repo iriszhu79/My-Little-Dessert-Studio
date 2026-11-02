@@ -1,99 +1,135 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#fcf6ef" />
-    <title>My Little Dessert Studio · 我的甜品工作室</title>
+    <meta name="theme-color" content="#fbf7ef" />
+    <title>My Little Dessert Studio</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <header>
-      <a class="brand" href="./"
-        ><span class="brand-icon">♧</span
+      <a class="brand" href="./" aria-label="My Little Dessert Studio home"
+        ><span class="brand-icon" aria-hidden="true">♧</span
         ><span>My Little<br /><b>Dessert Studio</b></span></a
-      ><span class="header-note">一点奶油，一点想象，一整个好心情。</span>
+      ><span class="header-note">a little baking, a little daydreaming</span>
       <div class="header-actions">
-        <span id="saved">已自动保存</span
-        ><button id="undo" class="subtle">↶ 撤销</button
-        ><button id="reset" class="subtle">重新制作</button>
+        <span id="saved" role="status">Saved on this device</span
+        ><button id="undo" class="subtle" aria-label="Undo">
+          ↶ <span>Undo</span></button
+        ><button id="reset" class="subtle">Start over</button>
       </div>
     </header>
     <main>
       <section class="intro">
-        <div class="eyebrow">THE LITTLE JOYS, MADE BY YOU</div>
-        <h1>把今天，做成甜的。</h1>
-        <p>从一片松软蛋糕胚，到亲手完成的甜蜜。</p>
-        <div class="release-note">
-          <span>制作流程版 v1.1 · 夹心 / 叠层 / 抹面</span
-          ><button id="showMaking" class="subtle">进入夹心制作 →</button>
+        <div>
+          <div class="eyebrow">YOUR LITTLE BAKING RITUAL</div>
+          <h1>A little cake, made by you.</h1>
         </div>
+        <span class="release-note">The baking edition · v2.0</span
+        ><button id="showMaking" class="subtle">Back to the sponge</button>
       </section>
       <div class="workspace">
         <section class="art-area">
           <div class="art-heading">
-            <span id="workMode">制作中 · 蛋糕转台</span
-            ><span class="tiny">MADE WITH LOVE ♡</span>
+            <span id="workMode">THE CAKE STAND</span
+            ><span class="tiny">TAKE YOUR TIME ♡</span>
           </div>
           <div class="canvas-wrap">
             <canvas
               id="cake"
               width="1000"
               height="900"
-              aria-label="蛋糕创作画布，可拖动装饰"
+              aria-label="Your cake. Tap or drag to spread cream; select decorations to move them. Arrow keys move a selected decoration. Delete removes it."
               tabindex="0"
             ></canvas
             ><span class="canvas-label">a little slice of happiness</span>
+            <div id="sceneCaption" aria-live="polite"></div>
           </div>
           <div class="art-footer">
-            <span>✧ <span id="hint">选择喜欢的形状，开始你的创作</span></span
-            ><button id="finish">完成作品 <span>↗</span></button>
+            <span
+              >✧ <span id="hint">Start with a soft little sponge.</span></span
+            ><button id="finish">
+              Finish cake <span aria-hidden="true">→</span>
+            </button>
           </div>
           <div class="selection-tools" id="selectionTools" hidden>
-            <span>已选中装饰</span
-            ><button id="smaller" aria-label="缩小装饰">−</button
-            ><button id="larger" aria-label="放大装饰">＋</button
-            ><button id="rotate">旋转</button><button id="delete">删除</button>
+            <span>Your little detail</span
+            ><button id="smaller" aria-label="Make smaller">−</button
+            ><button id="larger" aria-label="Make larger">＋</button
+            ><button id="rotate">Rotate</button
+            ><button id="delete">Delete</button>
           </div>
         </section>
         <aside>
           <div class="panel-title">
-            <span>创作小厨房</span><span id="stepCount">01 / 09</span>
+            <span id="phaseTitle">The ingredients</span
+            ><span id="stepCount">01 / 09</span>
           </div>
-          <nav id="steps" aria-label="制作步骤"></nav>
+          <nav id="steps" aria-label="Baking steps"></nav>
           <div id="panel"></div>
           <div class="panel-bottom">
-            <button id="prev" class="subtle">← 上一步</button
-            ><button id="next">下一步 →</button>
+            <button id="prev" class="subtle">← Back</button
+            ><button id="next">Next →</button>
           </div>
         </aside>
       </div>
       <footer>
-        慢慢来，让灵感和奶油一起绽放。<span>BAKED WITH A LITTLE MAGIC</span>
+        <span>Nothing to rush. Something to savor.</span
+        ><span>MADE WITH A LITTLE MAGIC</span>
       </footer>
     </main>
     <dialog id="welcome">
-      <div class="welcome-art">✧ 🍰 ✧</div>
-      <div class="eyebrow">WELCOME TO YOUR LITTLE STUDIO</div>
-      <h2>My Little<br />Dessert Studio</h2>
-      <p>做一份属于你的甜点吧。<br />选一点喜欢的，留一点甜蜜给今天。</p>
-      <button id="begin">开始制作 →</button
-      ><small>无需登录 · 本地保存 · 自由创作</small>
+      <canvas
+        id="welcomeCake"
+        width="500"
+        height="360"
+        aria-hidden="true"
+      ></canvas>
+      <div class="eyebrow">A SUNNY LITTLE STUDIO</div>
+      <h2>Let’s bake<br />something lovely.</h2>
+      <p>
+        A soft sponge, a swirl of cream,<br />and a little imagination. All
+        yours.
+      </p>
+      <button id="begin">Start baking →</button
+      ><small>No timers. No scores. Just a little joy.</small>
     </dialog>
     <dialog id="result">
-      <div class="eyebrow">YOUR SWEET LITTLE MASTERPIECE</div>
-      <h2>今天的甜蜜作品完成啦！</h2>
-      <img id="resultImage" alt="你的蛋糕成品" />
-      <p>把这一小份快乐，收藏起来吧。</p>
-      <button id="download">↓ 保存图片 PNG</button
-      ><button id="edit" class="subtle">继续编辑</button
-      ><button id="restart" class="subtle">重新制作</button>
+      <div class="eyebrow">MADE BY YOU, WITH LOVE</div>
+      <h2>Your sweet little masterpiece.</h2>
+      <img id="resultImage" alt="Your finished cake, ready to save" /><label
+        class="name-field"
+        for="cakeName"
+        >Give your cake a name<input
+          id="cakeName"
+          maxlength="32"
+          placeholder="My little cake"
+          autocomplete="off"
+      /></label>
+      <p>A little happiness, worth keeping.</p>
+      <div class="result-actions">
+        <button id="download">Save image</button
+        ><button id="edit" class="subtle">Keep editing</button
+        ><button id="restart" class="subtle">Start over</button>
+      </div>
+      <small>On mobile, you can also press and hold the photo.</small>
     </dialog>
     <dialog id="confirm">
-      <h2>开启一份新的甜蜜？</h2>
-      <p>当前作品将被清除，记得先保存喜欢的作品。</p>
-      <button id="cancelReset" class="subtle">继续创作</button
-      ><button id="confirmReset">确认重新制作</button>
+      <div class="eyebrow">A FRESH LITTLE BEGINNING</div>
+      <h2>Start a new cake?</h2>
+      <p>
+        Your current cake will be cleared.<br />Save a photo first if you would
+        like to keep it.
+      </p>
+      <button id="cancelReset" class="subtle">Keep my cake</button
+      ><button id="confirmReset">Yes, start fresh</button>
+    </dialog>
+    <dialog id="clearConfirm">
+      <h2>Clear these little details?</h2>
+      <p>You can undo this if you change your mind.</p>
+      <button id="cancelClear" class="subtle">Keep them</button
+      ><button id="confirmClear">Clear them</button>
     </dialog>
     <div id="toast" role="status"></div>
     <script type="module" src="app.js"></script>

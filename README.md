@@ -1,86 +1,78 @@
-# My Little Dessert Studio · 我的甜品工作室
+# My Little Dessert Studio
 
-一款没有计时、评分或失败惩罚的甜品创作小游戏。选择造型、搭配奶油、摆放装饰，把今天做成甜的。
+An original, sunlit 2D baking game. Start with a bare sponge, spread cream, tuck in a little filling, and make a cake that feels like you. No timers, scores, accounts, or failure states.
 
-## 运行
+## Run locally
 
-需要 Node.js 20 或更高版本（云环境使用 Node.js 24）。
+Node.js 20+ is required; the cloud environment uses Node.js 24.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-服务默认监听 `0.0.0.0:5173`。可通过 `PORT` 环境变量调整端口。使用浏览器访问服务后，点击“开始制作”。不需要账户、数据库、密钥或第三方服务。
+The development server listens on port 5173 and accepts an optional `PORT` variable. Use an HTTP server rather than opening the HTML directly: the game uses native JavaScript modules. There are no runtime npm dependencies, external images, fonts, analytics, APIs, database, or credentials.
 
-应用为原生 HTML / CSS / JavaScript ES Modules，开发时无需构建、无运行时 npm 依赖。发布时运行 `npm run build`，生成带内容指纹的 `dist/` 静态文件，避免新旧资源缓存混用。可将 `dist/` 目录部署到任意静态网站服务。请通过 HTTP 服务运行，避免直接双击 HTML 引起模块加载限制。
+## The baking ritual
 
-## 玩法
+1. **Sponge** — Round, Heart, Square, or Flower. Choose Vanilla, Chocolate, Strawberry, Matcha, or mix a custom sponge color. A soft drop introduces the sponge on its pedestal.
+2. **Cream** — Pick one of seven cream bowls, or mix your own color. Tap or drag over the cake to spread a first coat. “Smooth it for me” reveals the remaining cream in a short animation. “Spread & continue” finishes this coat before the filling step.
+3. **Filling** — Add fruit, chocolate, cookies, or macarons. Click to add, or drag a material from its tray to the cake. Filling and outer decorations are stored separately.
+4. **Layers** — Keep one layer, or explicitly add a second sponge with a short falling animation. Revisiting a stage never adds a layer or silently finishes the frosting.
+5. **Frost** — Spread a separate outer coat. Each pointer gesture is one undo action; assisted smoothing is also available. The sides gradually take on the cream color as coverage increases.
+6. **Decorate** — All original fruit, sliced fruit, sweets, flowers, bows, pearls, cream piping, and custom lettering remain available. Enter a message of up to 20 characters, or use “Happy Day” / “For You”. Add multiple pieces, drag them, and select them to resize, rotate, or delete. On a keyboard, arrow keys move a selected decoration; Delete / Backspace removes it. Clear requires confirmation and can be undone.
+7. **Plate** — Move from the pedestal to Porcelain, Scalloped, Blush pink, or Glass without losing anything.
+8. **Slice** — Keep whole, or cut 2 / 4 / 6 / 8 portions. A short knife pass reveals silhouette-clipped cut lines.
+9. **Scene** — Choose Cream linen, Pink gingham, Warm wood, or Garden picnic. Finish with a small pull-back, name the cake, and export a 1000 × 900 PNG containing only the artwork. Mobile users can also press and hold the finished image.
 
-1. 选择圆形、爱心形、方形或花朵形蛋糕胚，并搭配蛋糕与外层奶油颜色。
-2. 在高脚蛋糕台上选择夹心奶油，放入草莓切片、芒果等水果；水果可拖动和调整。
-3. 盖上第二层蛋糕胚。夹心水果会藏进蛋糕里，随时可回到“夹心”修改。
-4. 在“抹面”步骤按住表面拖动，将奶油一笔笔抹开；每笔可撤销，也可一键抹匀。完成后侧面也会包上奶油。
-5. 添加表面装饰：整颗草莓、半颗草莓、草莓扇片、猕猴桃片、橙片、柠檬片、芒果扇片、芒果丁、香蕉片、蓝莓、樱桃和薄荷叶，以及曲奇、巧克力、花朵等。文字分类提供预设短句和最多 20 字的自定义文字。
-6. 点击选中装饰后缩放、旋转或删除。鼠标和触屏都可拖动；方向键可微调选中素材，Delete / Backspace 可删除。
-7. 制作时在蛋糕台上操作；进入“盘子”后切换成品布景，选择盘子、切线和背景，再导出 1000 × 900 PNG。手机也可长按成品图片保存。
+All interface copy, accessible names, prompts, errors, and download messages are English. User-authored messages in older saves are preserved as entered. Mobile materials and step strips scroll horizontally. Animations are short and respect the system's reduced-motion preference.
 
-步骤导航可横向滚动，也可以用“上一步 / 下一步”依次完成。为了保留自由搭配，直接进入“装饰”及之后步骤会自动准备好叠层和抹面；在“抹面”点击下一步也会补齐剩余奶油。旧版本作品会保留并迁移到装饰步骤，不会覆盖原来的水果和配色。
+Players may jump between stages and revisit earlier choices. Jumping ahead preserves the actual cake rather than implicitly adding layers or cream. Undo retains the last 60 edits in the current session. Start over requires confirmation and clears the recipe and undo history.
 
-撤销支持当前会话最近 60 次修改，包括拖动、清空、删除及配色修改。“重新制作”需要确认；确认后开始新作品，不能撤销重置。
+## Autosave and privacy
 
-## 本地保存与隐私
+Every edit is saved locally under `little-dessert-v1`. The current stage, independent cream strokes, single/double-layer choice, fillings, decorations, colors, plating, slicing, scene, and cake name survive refresh. Undo history does not survive refresh. No artwork or personal data is uploaded.
 
-所有绘制、编辑、PNG 导出都在浏览器本地完成。应用不引用远程图片、字体、CDN 或分析服务，不上传作品。
+V1 / V1.1 saves migrate into the expanded schema while preserving their shapes, colors, messages, and decorations. Invalid recipe data falls back safely; a corrupt JSON save displays an English recovery message. If browser storage is disabled, the game remains playable and PNG export works, with an autosave warning.
 
-每次修改自动保存在当前浏览器、当前站点的 `localStorage`（键名 `little-dessert-v1`）。刷新后恢复作品；当前步骤、夹心、叠层和抹面笔迹一起保存；撤销历史不跨刷新保存。浏览器禁止存储时仍可创作和导出，但无法恢复进度，页面会提示。清除网站数据会删除进度。
-
-## 验证
+## Verify
 
 ```sh
 npm test
 npm run format:check
+npm run build
 ```
 
-测试使用 Playwright，自动启动并检查开发服务。云环境已提供 `/usr/bin/chromium`，不需要额外下载。其他机器可指定系统 Chrome / Chromium：
+Playwright runs 14 desktop / Pixel 7 browser cases covering the full baking ritual, visible intermediate cream frames, explicit layering, backtracking, native touch and mouse gestures, ingredient placement, resizing, rotation, deletion, confirmed clear/reset, custom lettering and colors, all plates and scenes, cuts, reduced motion, English interface copy, migration, damaged saves, disabled storage, and PNG dimensions and pixel agreement with the final preview.
+
+Layout checks include widths of 320, 375, 768, and 1440 pixels. Reports/screenshots are generated in ignored `test-results/`. Mobile coverage uses Chromium device emulation and native touch events; real iOS / Safari hardware is not yet verified.
+
+The cloud image provides `/usr/bin/chromium`. Elsewhere, set `CHROMIUM_PATH=/path/to/chromium`, or install the Playwright browser with `npx playwright install chromium`. The test server starts automatically if needed.
+
+## Structure
+
+| File                    | Purpose                                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `index.html`            | English studio, accessible controls, welcome, confirmation, and final photo dialogs                                        |
+| `style.css`             | Responsive cream-paper studio, mobile trays, and reduced-motion styling                                                    |
+| `app.js`                | Existing recipe model, migration, workflow, animation orchestration, pointer interactions, history, and image export       |
+| `renderer.js`           | Original Canvas illustrations: all silhouettes, sponge grain, frosting, fruit, bowls, spatula, pedestal, plates, and scene |
+| `server.js`             | Development server using Node.js built-in modules                                                                          |
+| `scripts/build-site.js` | Production asset fingerprinting, including the renderer's module import                                                    |
+| `tests/studio.spec.js`  | Browser acceptance and regression checks                                                                                   |
+
+Add a material by extending `toppingNames` / `drawTopping` in the renderer and its ingredient category in the existing app. The visual assets are original vector drawings; no video frames or third-party artwork are shipped.
+
+## Publish
 
 ```sh
-CHROMIUM_PATH=/path/to/chromium npm test
+npm run build
 ```
 
-没有系统浏览器时执行 `npx playwright install chromium` 安装 Playwright 浏览器（Linux 如缺少系统库可按 Playwright 官方说明安装依赖）。测试配置会在不存在 `/usr/bin/chromium` 时使用 Playwright 浏览器。
+Deploy the generated `dist/` directory to a static host. Content-derived JS/CSS filenames prevent cached resources from mixing releases. GitHub Pages deploys automatically from `main` via `.github/workflows/pages.yml`.
 
-现有 12 项浏览器测试覆盖桌面与 Pixel 7 模拟设备：
+For a fresh repository, select **Settings → Pages → Source → GitHub Actions**, then run the workflow. Site: `https://iriszhu79.github.io/My-Little-Dessert-Studio/`. Confirm a successful Actions deployment before calling a release live.
 
-- 全部造型、颜色、装饰、盘子、切块和背景选项。
-- 分层制作、独立夹心水果、鼠标 / 原生触屏抹面、每笔撤销与刷新恢复、蛋糕台和成品布景切换，以及旧版存档迁移。
-- 鼠标拖动及 Chromium 原生触摸事件拖动、范围限制、缩放、旋转、删除、撤销和清空。
-- PNG 下载格式和尺寸、导出与预览逐像素一致、继续编辑、刷新恢复。
-- 320、375、768、1440 像素宽度不横向溢出；重新制作确认与取消。
+## Deliberate simplifications
 
-测试生成的截图和报告位于忽略的 `test-results/` 中。手机测试是 Chromium 设备模拟，尚未在真实 iOS / Safari 设备上验证。
-
-## 代码结构
-
-| 文件                   | 职责                                                     |
-| ---------------------- | -------------------------------------------------------- |
-| `index.html`           | 页面、编辑器和弹窗语义结构                               |
-| `style.css`            | 奶油色手账视觉、响应式布局、减少动态效果支持             |
-| `app.js`               | 作品状态、工具面板、触屏 / 鼠标交互、撤销、恢复和导出    |
-| `renderer.js`          | 统一 Canvas 插画：造型、蛋糕层次、奶油、盘子、装饰与背景 |
-| `server.js`            | 使用 Node.js 内置模块提供本地开发静态服务                |
-| `tests/studio.spec.js` | 桌面 / 手机完整交互验收测试                              |
-
-增加装饰时，在 `renderer.js` 的 `toppingNames`、`drawTopping` 中加入绘制，再在 `app.js` 分类中加入素材键。所有视觉素材均为项目内绘制，无需外部素材授权或联网。
-
-## 当前实现范围
-
-切块采用随蛋糕轮廓裁剪的视觉切线，不做物理切割。装饰中心限制在蛋糕表面的内侧区域，尺寸较大的装饰可自然探出边缘；最多添加 250 个装饰，避免低性能手机过载。抹面采用裁剪到蛋糕轮廓内的矢量笔迹，完成时统一覆盖侧面；不是流体模拟，也不包含切水果的刀具操作，水果以切好的素材提供。没有实现可选音效、多作品相册及后续甜品类型。
-
-## 发布试玩版（GitHub Pages）
-
-仓库已提供 `.github/workflows/pages.yml`，只发布游戏 HTML 与带内容指纹的 JS / CSS 静态文件，不发布开发服务、依赖目录或测试文件。
-
-首次启用：进入仓库 **Settings → Pages → Build and deployment → Source**，选择 **GitHub Actions**。然后进入 **Actions → Deploy dessert studio to GitHub Pages → Run workflow**，选择 `main` 并运行。后续推送 `main` 会自动更新网站。
-
-部署成功后的试玩地址为 `https://iriszhu79.github.io/My-Little-Dessert-Studio/`。请以 Actions 中绿色的部署结果和 Pages 设置页显示的网址为准；在启用并成功部署前，该地址可能返回 404。
+Cream is rendered from clipped vector brush strokes with an assisted reveal and side-color blending; it is not a fluid or mesh simulation. Cutting is a knife animation plus visual seams, without physical slices separating. Fruit is provided already cut; there is no knife-controlled fruit cutting. Ingredient drop shadows and surface foreshortening are stylized 2D. There is no sound, cloud album, account system, or new dessert type. Each surface supports up to 250 decorations to protect mobile performance.
