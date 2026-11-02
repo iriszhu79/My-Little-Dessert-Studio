@@ -238,3 +238,173 @@ test("all toppings render and state survives all silhouette switches", async ({
   for (const name of ["奶油白桌面", "粉色格纹桌布", "木质桌面", "花园野餐布"])
     await page.getByRole("button", { name, exact: true }).click();
 });
+
+test("layered kitchen workflow: filling, stacking, native brush strokes, undo, resume and photo scene", async ({
+  page,
+}, testInfo) => {
+  await start(page);
+  await step(page, "夹心");
+  await page
+    .getByRole("button", { name: "夹心奶油 浅黄", exact: true })
+    .click();
+  for (const name of ["半颗草莓", "芒果扇片"])
+    await page.getByRole("button", { name, exact: true }).click();
+  expect((await readState(page)).fillingToppings).toHaveLength(2);
+  expect((await readState(page)).toppings).toHaveLength(0);
+  await page.locator("#cake").scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: testInfo.outputPath("01-filling.png"),
+    fullPage: true,
+  });
+  await step(page, "叠层");
+  await page
+    .getByRole("button", { name: "盖上第二层蛋糕胚", exact: true })
+    .click();
+  expect((await readState(page)).layered).toBe(true);
+  expect((await readState(page)).fillingToppings).toHaveLength(2);
+  await step(page, "抹面");
+  await expect(page.locator("#workMode")).toHaveText("制作中 · 蛋糕转台");
+  await page.locator("#cake").scrollIntoViewIfNeeded();
+  const box = await page.locator("#cake").boundingBox();
+  const point = (x, y) => ({
+    x: box.x + ((500 + x) * box.width) / 1000,
+    y: box.y + ((402 + y) * box.height) / 900,
+  });
+  const points = [
+    point(-115, -30),
+    point(-60, -30),
+    point(0, -30),
+    point(60, -30),
+    point(115, -30),
+  ];
+  async function brush() {
+    if (testInfo.project.name === "mobile") {
+      const client = await page.context().newCDPSession(page);
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [points[0]],
+      });
+      for (const p of points.slice(1))
+        await client.send("Input.dispatchTouchEvent", {
+          type: "touchMove",
+          touchPoints: [p],
+        });
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchEnd",
+        touchPoints: [],
+      });
+    } else {
+      await page.mouse.move(points[0].x, points[0].y);
+      await page.mouse.down();
+      for (const p of points.slice(1))
+        await page.mouse.move(p.x, p.y, { steps: 4 });
+      await page.mouse.up();
+    }
+  }
+  await brush();
+  let state = await readState(page);
+  expect(state.frosting).toHaveLength(1);
+  expect(state.frosting[0].length).toBeGreaterThan(5);
+  expect(state.frosted).toBe(false);
+  expect(
+    await page.locator("#frostProgress").evaluate((e) => e.value),
+  ).toBeGreaterThan(10);
+  await page.screenshot({
+    path: testInfo.outputPath("02-brush.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: /撤销/ }).click();
+  expect((await readState(page)).frosting).toHaveLength(0);
+  // A point outside the cake must not create frosting or a new undo entry.
+  await page.locator("#cake").click({ position: { x: 10, y: 10 } });
+  expect((await readState(page)).frosting).toHaveLength(0);
+  await page.locator("#cake").scrollIntoViewIfNeeded();
+  const b2 = await page.locator("#cake").boundingBox();
+  points.splice(
+    0,
+    points.length,
+    ...[-115, -60, 0, 60, 115].map((x) => ({
+      x: b2.x + ((500 + x) * b2.width) / 1000,
+      y: b2.y + (372 * b2.height) / 900,
+    })),
+  );
+  await brush();
+  state = await readState(page);
+  await page.reload();
+  expect(await readState(page)).toEqual(state);
+  await expect(page.locator("#frostProgress")).toBeVisible();
+  await page.getByRole("button", { name: "一键抹匀奶油", exact: true }).click();
+  expect((await readState(page)).frosted).toBe(true);
+  await expect(page.locator("#frostPercent")).toHaveText("100%");
+  await step(page, "装饰");
+  for (const name of [
+    "草莓扇片",
+    "猕猴桃片",
+    "香橙切片",
+    "香蕉片",
+    "芒果丁",
+    "薄荷叶",
+  ])
+    await page.getByRole("button", { name, exact: true }).click();
+  state = await readState(page);
+  expect(state.toppings).toHaveLength(6);
+  expect(state.fillingToppings).toHaveLength(2);
+  await page.screenshot({
+    path: testInfo.outputPath("03-decorate.png"),
+    fullPage: true,
+  });
+  const workbench = await page.locator("#cake").evaluate((c) => c.toDataURL());
+  await step(page, "盘子");
+  await expect(page.locator("#workMode")).toHaveText("成品布景 · 甜蜜留影");
+  expect(await page.locator("#cake").evaluate((c) => c.toDataURL())).not.toBe(
+    workbench,
+  );
+  await page.locator("#finish").click();
+  await page.getByRole("button", { name: "继续编辑", exact: true }).click();
+  await step(page, "装饰");
+  await expect(page.locator("#workMode")).toHaveText("制作中 · 蛋糕转台");
+  expect((await readState(page)).toppings).toEqual(state.toppings);
+});
+
+test("legacy V1 progress migrates to the decoration stage without losing the cake", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.evaluate(() =>
+    localStorage.setItem(
+      "little-dessert-v1",
+      JSON.stringify({
+        shape: 1,
+        cake: 2,
+        cream: 3,
+        plate: 2,
+        slices: 4,
+        background: 1,
+        toppings: [
+          {
+            id: "legacy-fruit",
+            type: "strawberry",
+            x: 0,
+            y: 0,
+            scale: 1,
+            rotation: 0,
+            text: "Happy Day",
+          },
+        ],
+      }),
+    ),
+  );
+  await page.reload();
+  await expect(page.locator("#welcome")).not.toBeVisible();
+  await expect(
+    page
+      .getByRole("navigation")
+      .getByRole("button", { name: "装饰", exact: true }),
+  ).toHaveAttribute("aria-current", "step");
+  await page.getByRole("button", { name: "半颗草莓", exact: true }).click();
+  const s = await readState(page);
+  expect(s.shape).toBe(1);
+  expect(s.toppings).toHaveLength(2);
+  expect(s.toppings[0].id).toBe("legacy-fruit");
+  expect(s.frosted).toBe(true);
+});

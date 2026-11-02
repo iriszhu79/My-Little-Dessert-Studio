@@ -8,6 +8,14 @@ export const creamColors = [
 ];
 export const toppingNames = {
   strawberry: "草莓",
+  strawberryHalf: "半颗草莓",
+  strawberryFan: "草莓扇片",
+  kiwi: "猕猴桃片",
+  orange: "香橙切片",
+  mango: "芒果扇片",
+  mangoCubes: "芒果丁",
+  banana: "香蕉片",
+  mint: "薄荷叶",
   blueberry: "蓝莓",
   cherry: "樱桃",
   lemon: "柠檬片",
@@ -74,6 +82,211 @@ function stroke(c, color, width = 2) {
   c.lineWidth = width;
   c.stroke();
 }
+function fruitSlice(c, type) {
+  if (type === "strawberryHalf") {
+    c.beginPath();
+    c.moveTo(0, 34);
+    c.bezierCurveTo(-7, 35, -35, -3, -29, -24);
+    c.bezierCurveTo(-24, -41, 20, -41, 28, -23);
+    c.bezierCurveTo(36, -3, 8, 31, 0, 34);
+    c.closePath();
+    const g = c.createLinearGradient(-25, -25, 25, 28);
+    g.addColorStop(0, "#ed6a70");
+    g.addColorStop(0.5, "#d94054");
+    g.addColorStop(1, "#ab3046");
+    c.fillStyle = g;
+    c.fill();
+    stroke(c, "#af3b4c", 1.5);
+    c.save();
+    c.clip();
+    c.beginPath();
+    c.moveTo(-2, 28);
+    c.bezierCurveTo(-13, 9, -26, -6, -23, -23);
+    c.bezierCurveTo(-17, -36, 15, -36, 22, -23);
+    c.bezierCurveTo(23, -3, 7, 15, -2, 28);
+    c.fillStyle = "#fff0ce";
+    c.fill();
+    c.beginPath();
+    c.moveTo(-2, 24);
+    c.bezierCurveTo(-7, 4, -22, -4, -19, -21);
+    c.bezierCurveTo(-13, -30, 12, -31, 18, -20);
+    c.bezierCurveTo(21, -5, 7, 10, -2, 24);
+    c.fillStyle = "#ef9a9a";
+    c.fill();
+    c.beginPath();
+    c.moveTo(-1, 20);
+    c.bezierCurveTo(-4, 0, -11, -5, -7, -18);
+    c.quadraticCurveTo(0, -24, 7, -17);
+    c.quadraticCurveTo(10, -5, -1, 20);
+    c.fillStyle = "#ffe7ce";
+    c.fill();
+    for (let i = 0; i < 14; i++) {
+      const a = (i * Math.PI * 2) / 14;
+      const x = Math.cos(a) * 23,
+        y = -8 + Math.sin(a) * 24;
+      ellipse(c, x, y, 1.2, 2, "#ffeab2");
+    }
+    c.restore();
+    return true;
+  }
+  if (type === "strawberryFan") {
+    for (let i = 0; i < 4; i++) {
+      c.save();
+      c.translate((i - 1.5) * 12, Math.abs(i - 1.5) * 3);
+      c.rotate((i - 1.5) * 0.24);
+      c.scale(0.68, 0.82);
+      fruitSlice(c, "strawberryHalf");
+      c.restore();
+    }
+    return true;
+  }
+  if (type === "kiwi") {
+    ellipse(c, 0, 0, 35, 28, "#8a8153");
+    ellipse(c, 0, -1, 32, 25, "#afd16d");
+    const g = c.createRadialGradient(0, -1, 4, 0, -1, 30);
+    g.addColorStop(0, "#f1efb3");
+    g.addColorStop(0.42, "#c7df82");
+    g.addColorStop(1, "#8fb447");
+    ellipse(c, 0, -1, 30, 23, g);
+    for (let i = 0; i < 28; i++) {
+      const a = (i * Math.PI * 2) / 28;
+      c.beginPath();
+      c.moveTo(Math.cos(a) * 9, -1 + Math.sin(a) * 6);
+      c.lineTo(Math.cos(a) * 28, -1 + Math.sin(a) * 21);
+      stroke(c, "#e2e79c", 1);
+      c.save();
+      c.translate(Math.cos(a) * 19, -1 + Math.sin(a) * 14);
+      c.rotate(a);
+      ellipse(c, 0, 0, 2.2, 1.1, "#595b32");
+      c.restore();
+    }
+    ellipse(c, 0, -1, 8, 6, "#f6f0c1");
+    return true;
+  }
+  if (type === "orange") {
+    c.rotate(-0.25);
+    c.beginPath();
+    c.ellipse(0, -12, 38, 37, 0, 0, Math.PI);
+    c.closePath();
+    c.fillStyle = "#ec9d39";
+    c.fill();
+    c.beginPath();
+    c.ellipse(0, -12, 34, 32, 0, 0, Math.PI);
+    c.closePath();
+    c.fillStyle = "#fff1bd";
+    c.fill();
+    c.beginPath();
+    c.ellipse(0, -12, 29, 27, 0, 0, Math.PI);
+    c.closePath();
+    c.fillStyle = "#f5b84d";
+    c.fill();
+    for (let i = 1; i < 7; i++) {
+      const a = (i * Math.PI) / 7;
+      c.beginPath();
+      c.moveTo(0, -12);
+      c.lineTo(Math.cos(a) * 30, -12 + Math.sin(a) * 28);
+      stroke(c, "#fff0bf", 2);
+    }
+    return true;
+  }
+  if (type === "mango") {
+    for (let i = 0; i < 5; i++) {
+      c.save();
+      c.translate((i - 2) * 11, (i - 2) ** 2 * 1.3);
+      c.rotate((i - 2) * 0.16);
+      c.beginPath();
+      c.moveTo(-11, 22);
+      c.bezierCurveTo(-23, 0, -8, -33, 9, -27);
+      c.bezierCurveTo(18, -20, 14, 13, -11, 22);
+      const g = c.createLinearGradient(-15, -20, 15, 20);
+      g.addColorStop(0, "#ffdf74");
+      g.addColorStop(0.7, "#efb136");
+      g.addColorStop(1, "#e99427");
+      c.fillStyle = g;
+      c.fill();
+      stroke(c, "#dba039", 1);
+      c.restore();
+    }
+    return true;
+  }
+  if (type === "mangoCubes") {
+    for (const [x, y] of [
+      [-19, -10],
+      [9, -17],
+      [23, 6],
+      [-4, 12],
+      [-24, 17],
+    ]) {
+      c.save();
+      c.translate(x, y);
+      c.rotate(0.2);
+      c.fillStyle = "#eead37";
+      c.beginPath();
+      c.roundRect(-11, -10, 23, 22, 4);
+      c.fill();
+      c.fillStyle = "#ffdb69";
+      c.beginPath();
+      c.roundRect(-11, -14, 23, 19, 4);
+      c.fill();
+      c.beginPath();
+      c.moveTo(-7, -11);
+      c.lineTo(7, -11);
+      stroke(c, "#fff0aa", 2);
+      c.restore();
+    }
+    return true;
+  }
+  if (type === "banana") {
+    for (const [x, y, r] of [
+      [-15, 5, -0.3],
+      [14, -5, 0.2],
+    ]) {
+      c.save();
+      c.translate(x, y);
+      c.rotate(r);
+      ellipse(c, 0, 3, 22, 22, "#d7b96b");
+      ellipse(c, 0, 0, 22, 21, "#f4dda0");
+      ellipse(c, 0, 0, 18, 17, "#fff0be");
+      for (let i = 0; i < 5; i++) {
+        const a = (i * 2 * Math.PI) / 5;
+        c.beginPath();
+        c.moveTo(0, 0);
+        c.lineTo(Math.cos(a) * 12, Math.sin(a) * 12);
+        stroke(c, "#e3c88d", 1);
+        ellipse(c, Math.cos(a) * 5, Math.sin(a) * 5, 1, 1.5, "#ae8c50");
+      }
+      c.restore();
+    }
+    return true;
+  }
+  if (type === "mint") {
+    for (let i = 0; i < 3; i++) {
+      c.save();
+      c.rotate(-0.8 + i * 0.8);
+      c.beginPath();
+      c.moveTo(0, 16);
+      c.bezierCurveTo(-30, -2, -23, -31, 0, -40);
+      c.bezierCurveTo(21, -19, 24, -2, 0, 16);
+      c.fillStyle = ["#8ca977", "#6f9663", "#9db985"][i];
+      c.fill();
+      c.beginPath();
+      c.moveTo(0, 16);
+      c.lineTo(0, -34);
+      stroke(c, "#d1dca9", 1);
+      for (let y = -24; y < 8; y += 8) {
+        c.beginPath();
+        c.moveTo(0, y);
+        c.lineTo(-12, y - 5);
+        c.moveTo(0, y);
+        c.lineTo(12, y - 5);
+        stroke(c, "#c1d09a", 0.8);
+      }
+      c.restore();
+    }
+    return true;
+  }
+  return false;
+}
 export function drawTopping(
   c,
   type,
@@ -89,6 +302,10 @@ export function drawTopping(
   c.scale(size, size);
   c.lineCap = "round";
   c.lineJoin = "round";
+  if (fruitSlice(c, type)) {
+    c.restore();
+    return;
+  }
   if (type === "strawberry") {
     c.rotate(-0.2);
     c.beginPath();
@@ -319,9 +536,17 @@ export function drawTopping(
   }
   c.restore();
 }
-export function render(c, state, { selected = null, exporting = false } = {}) {
+export function render(
+  c,
+  state,
+  { selected = null, exporting = false, stage = 5, presentation = false } = {},
+) {
+  const workbench = !presentation && stage < 6;
+  const showFilling = stage === 2 || (stage === 3 && !state.layered);
+  const showCream = showFilling || (stage >= 4 && state.frosted);
+  const cream = creamColors[showFilling ? state.fillingCream : state.cream];
   c.clearRect(0, 0, 1000, 900);
-  const bg = state.background;
+  const bg = workbench ? 0 : state.background;
   c.fillStyle = ["#f3eadb", "#f5e0dc", "#cfa77f", "#e6ead5"][bg];
   c.fillRect(0, 0, 1000, 900);
   if (bg === 1 || bg === 3) {
@@ -374,27 +599,76 @@ export function render(c, state, { selected = null, exporting = false } = {}) {
   c.filter = "blur(18px)";
   ellipse(c, 520, 592, 337, 130, "#75523b25");
   c.restore();
+  if (workbench) {
+    c.save();
+    c.filter = "blur(15px)";
+    ellipse(c, 510, 831, 167, 38, "#8a66492c");
+    c.restore();
+    const foot = c.createLinearGradient(360, 770, 625, 850);
+    foot.addColorStop(0, "#fffaf0");
+    foot.addColorStop(0.5, "#f4e1c9");
+    foot.addColorStop(1, "#d8bfa3");
+    ellipse(c, 500, 818, 145, 45, foot);
+    ellipse(c, 500, 807, 137, 37, "#fcf1de");
+    c.beginPath();
+    c.moveTo(471, 640);
+    c.bezierCurveTo(480, 704, 475, 761, 444, 794);
+    c.quadraticCurveTo(500, 826, 555, 794);
+    c.bezierCurveTo(525, 753, 522, 703, 530, 640);
+    c.closePath();
+    const stem = c.createLinearGradient(450, 0, 550, 0);
+    stem.addColorStop(0, "#e8d2b7");
+    stem.addColorStop(0.4, "#fff8e9");
+    stem.addColorStop(1, "#e0c5a6");
+    c.fillStyle = stem;
+    c.fill();
+  }
   c.save();
   c.translate(500, 492);
-  if (state.plate === 1) {
+  if (!workbench && state.plate === 1) {
     for (let i = 0; i < 48; i++) {
       const a = (i * Math.PI) / 24;
       ellipse(c, Math.cos(a) * 323, Math.sin(a) * 210 + 42, 22, 16, "#f9f4e8");
     }
   }
-  const plate = ["#fffaf0", "#fbf6e9", "#e8b8be", "#ffffff55"][state.plate];
-  ellipse(c, 0, 53, 350, 224, state.plate === 3 ? "#e8f4ef88" : "#c9bfae");
-  ellipse(c, 0, 43, 350, 224, plate);
-  c.strokeStyle = state.plate === 3 ? "#ffffffbb" : "#d5c8b4";
+  const plate = workbench
+    ? "#fff5e5"
+    : ["#fffaf0", "#fbf6e9", "#e8b8be", "#ffffff55"][state.plate];
+  ellipse(
+    c,
+    0,
+    53,
+    workbench ? 330 : 350,
+    workbench ? 180 : 224,
+    !workbench && state.plate === 3 ? "#e8f4ef88" : "#c9bfae",
+  );
+  ellipse(c, 0, 43, workbench ? 330 : 350, workbench ? 180 : 224, plate);
+  c.strokeStyle = !workbench && state.plate === 3 ? "#ffffffbb" : "#d5c8b4";
   c.lineWidth = 2;
   c.beginPath();
-  c.ellipse(0, 43, 331, 207, 0, 0, Math.PI * 2);
+  c.ellipse(
+    0,
+    43,
+    workbench ? 313 : 331,
+    workbench ? 166 : 207,
+    0,
+    0,
+    Math.PI * 2,
+  );
   c.stroke();
   c.beginPath();
-  c.ellipse(0, 43, 292, 179, 0, 0, Math.PI * 2);
-  c.strokeStyle = state.plate === 2 ? "#c58c9b" : "#dfd4c0";
+  c.ellipse(
+    0,
+    43,
+    workbench ? 288 : 292,
+    workbench ? 144 : 179,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  c.strokeStyle = !workbench && state.plate === 2 ? "#c58c9b" : "#dfd4c0";
   c.stroke();
-  if (state.plate === 1) {
+  if (!workbench && state.plate === 1) {
     for (let i = 0; i < 42; i++) {
       let a = (i * Math.PI) / 21;
       ellipse(c, Math.cos(a) * 321, 43 + Math.sin(a) * 197, 3, 2, "#bd9b72");
@@ -404,9 +678,10 @@ export function render(c, state, { selected = null, exporting = false } = {}) {
   c.save();
   c.translate(500, 402);
   const p = cakePath(state.shape);
-  const base = cakeColors[state.cake];
+  const depth = state.layered && stage >= 3 ? 145 : 85;
+  const base = stage >= 4 && state.frosted ? cream : cakeColors[state.cake];
   // Extrude the same silhouette downwards, retaining a recognizable shape.
-  for (let y = 105; y >= 0; y -= 2) {
+  for (let y = depth; y >= 0; y -= 2) {
     c.save();
     c.translate(0, y);
     c.fillStyle = base;
@@ -414,7 +689,7 @@ export function render(c, state, { selected = null, exporting = false } = {}) {
     c.restore();
   }
   c.save();
-  c.clip(bodyPath(state.shape));
+  c.clip(bodyPath(state.shape, depth));
   c.translate(0, 8);
   const side = c.createLinearGradient(-260, 0, 260, 0);
   side.addColorStop(0, "#ffffff30");
@@ -426,14 +701,17 @@ export function render(c, state, { selected = null, exporting = false } = {}) {
   // Layers on the front of the sponge, clipped to the extruded body.
   c.save();
   const body = new Path2D();
-  for (let y = 0; y <= 104; y += 4) {
+  for (let y = 0; y <= depth; y += 4) {
     const q = cakePath(state.shape);
     const m = new DOMMatrix().translate(0, y);
     body.addPath(q, m);
   }
   c.clip(body);
   c.translate(0, 68);
-  c.strokeStyle = "#fff0d19c";
+  c.strokeStyle =
+    stage >= 4 && state.frosted
+      ? "#fff7e44d"
+      : creamColors[state.fillingCream] + "e0";
   c.lineWidth = 10;
   c.stroke(p);
   c.translate(0, 26);
@@ -441,64 +719,112 @@ export function render(c, state, { selected = null, exporting = false } = {}) {
   c.lineWidth = 2;
   c.stroke(p);
   c.restore();
-  c.save();
-  c.shadowColor = "#9c6c4840";
-  c.shadowBlur = 8;
-  c.shadowOffsetY = 6;
-  c.fillStyle = creamColors[state.cream];
+  // Naked sponge before frosting: warm baked edge and a soft, porous surface.
+  c.fillStyle = cakeColors[state.cake];
   c.fill(p);
-  c.restore();
-  // Rounded frosting lip and delicate drips.
-  c.save();
-  c.clip(bodyPath(state.shape));
-  c.strokeStyle = creamColors[state.cream];
-  c.lineWidth = 12;
+  const sponge = c.createRadialGradient(-70, -65, 20, 0, 0, 290);
+  sponge.addColorStop(0, "#fff3c67a");
+  sponge.addColorStop(0.7, "#fff1c81c");
+  sponge.addColorStop(1, "#86502c55");
+  c.fillStyle = sponge;
+  c.fill(p);
+  c.strokeStyle = "#ae79474d";
+  c.lineWidth = 5;
   c.stroke(p);
-  for (let i = 0; i < 15; i++) {
-    let a = 0.12 + (i * Math.PI) / 15;
-    const x = Math.cos(a) * 235,
-      y = Math.sin(a) * 155;
-    c.beginPath();
-    c.moveTo(x, y - 7);
-    c.quadraticCurveTo(x + 9, y + 48 + (i % 3) * 7, x + 16, y - 4);
-    c.lineWidth = 10;
-    c.stroke();
+  c.save();
+  c.clip(p);
+  for (let i = 0; i < 280; i++) {
+    const x = ((i * 173.17) % 500) - 250,
+      y = ((i * 97.31) % 330) - 165;
+    ellipse(
+      c,
+      x,
+      y,
+      0.7 + (i % 3) * 0.25,
+      0.6 + (i % 2) * 0.3,
+      i % 2 ? "#9e75411b" : "#fff3cd30",
+    );
   }
   c.restore();
-  const top = c.createLinearGradient(-220, -160, 200, 160);
-  top.addColorStop(0, "#ffffff55");
-  top.addColorStop(0.6, "#ffffff00");
-  top.addColorStop(1, "#ae797417");
-  c.fillStyle = top;
-  c.fill(p);
-  c.strokeStyle = "#fff7eb8c";
-  c.lineWidth = 2;
-  c.stroke(p);
-  // Piped border, generated along the actual silhouette.
-  for (let i = 0; i < 52; i++) {
-    const a = (i * Math.PI * 2) / 52;
-    let x, y;
-    if (state.shape === 0) {
-      x = Math.cos(a) * 231;
-      y = Math.sin(a) * 146;
-    } else if (state.shape === 3) {
-      const r = 1 + 0.12 * Math.cos(a * 6);
-      x = Math.cos(a) * 202 * r;
-      y = Math.sin(a) * 132 * r;
-    } else if (state.shape === 2) {
-      const dx = Math.cos(a),
-        dy = Math.sin(a);
-      const r = 1 / Math.max(Math.abs(dx) / 207, Math.abs(dy) / 140);
-      x = dx * r;
-      y = dy * r;
-    } else continue;
+  if (showCream) {
     c.save();
-    c.translate(x, y);
-    c.scale(0.42, 0.28);
-    drawTopping(c, "cream");
+    c.shadowColor = "#9c6c4840";
+    c.shadowBlur = 8;
+    c.shadowOffsetY = 6;
+    c.fillStyle = cream;
+    c.fill(p);
+    c.restore();
+    // Rounded frosting lip and delicate drips.
+    c.save();
+    c.clip(bodyPath(state.shape, depth));
+    c.strokeStyle = cream;
+    c.lineWidth = 12;
+    c.stroke(p);
+    for (let i = 0; i < 15; i++) {
+      let a = 0.12 + (i * Math.PI) / 15;
+      const x = Math.cos(a) * 235,
+        y = Math.sin(a) * 155;
+      c.beginPath();
+      c.moveTo(x, y - 7);
+      c.quadraticCurveTo(x + 9, y + 48 + (i % 3) * 7, x + 16, y - 4);
+      c.lineWidth = 10;
+      c.stroke();
+    }
+    c.restore();
+    const top = c.createLinearGradient(-220, -160, 200, 160);
+    top.addColorStop(0, "#ffffff55");
+    top.addColorStop(0.6, "#ffffff00");
+    top.addColorStop(1, "#ae797417");
+    c.fillStyle = top;
+    c.fill(p);
+    c.strokeStyle = "#fff7eb8c";
+    c.lineWidth = 2;
+    c.stroke(p);
+    // Spatula ridges catch the light on the hand-smoothed frosting.
+    c.save();
+    c.clip(p);
+    c.strokeStyle = "#fff9ed80";
+    c.lineWidth = 7;
+    for (const [rx, ry, a, b] of [
+      [205, 126, 0.2, 4.9],
+      [165, 95, 2.9, 6.4],
+      [112, 64, 0.1, 3.8],
+    ]) {
+      c.beginPath();
+      c.ellipse(-3, -5, rx, ry, -0.04, a, b);
+      c.stroke();
+    }
+    c.restore();
+  } else if (stage === 4) {
+    // Clip vector brush strokes to the current silhouette, including heart/flower edges.
+    c.save();
+    c.clip(p);
+    c.strokeStyle = cream;
+    c.fillStyle = cream;
+    c.lineWidth = 86;
+    c.lineCap = "round";
+    c.lineJoin = "round";
+    for (const points of state.frosting) {
+      if (!points.length) continue;
+      c.beginPath();
+      c.moveTo(points[0].x, points[0].y);
+      for (const point of points) c.lineTo(point.x, point.y);
+      c.stroke();
+      ellipse(c, points[0].x, points[0].y, 43, 43, cream);
+      c.save();
+      c.strokeStyle = "#fff7e745";
+      c.lineWidth = 3;
+      for (const offset of [-24, 24]) {
+        c.beginPath();
+        c.moveTo(points[0].x, points[0].y + offset);
+        for (const point of points) c.lineTo(point.x, point.y + offset);
+        c.stroke();
+      }
+      c.restore();
+    }
     c.restore();
   }
-  if (state.slices) {
+  if (state.slices && stage >= 5) {
     c.save();
     c.clip(p);
     c.strokeStyle = "#89604e55";
@@ -514,7 +840,12 @@ export function render(c, state, { selected = null, exporting = false } = {}) {
     c.restore();
   }
   c.restore();
-  for (const t of state.toppings) {
+  const visibleToppings = showFilling
+    ? state.fillingToppings
+    : stage >= 5
+      ? state.toppings
+      : [];
+  for (const t of visibleToppings) {
     c.save();
     c.shadowColor = "#61432d35";
     c.shadowBlur = 4;
@@ -532,29 +863,31 @@ export function render(c, state, { selected = null, exporting = false } = {}) {
       c.restore();
     }
   }
-  // Botanical sprig to frame the composition without using external assets.
-  c.save();
-  c.translate(840, 735);
-  c.rotate(-0.55);
-  c.beginPath();
-  c.moveTo(0, 80);
-  c.quadraticCurveTo(-5, -25, 25, -100);
-  stroke(c, "#82936c", 3);
-  for (let i = 0; i < 6; i++) {
-    const yy = 50 - i * 24;
-    for (const sign of [-1, 1]) {
-      c.save();
-      c.translate(6, yy);
-      c.rotate(sign * 0.65);
-      ellipse(c, sign * 14, -12, 10, 25, i % 2 ? "#9ba983" : "#b4bd95");
-      c.restore();
+  if (!workbench) {
+    // Botanical sprig to frame the composition without using external assets.
+    c.save();
+    c.translate(840, 735);
+    c.rotate(-0.55);
+    c.beginPath();
+    c.moveTo(0, 80);
+    c.quadraticCurveTo(-5, -25, 25, -100);
+    stroke(c, "#82936c", 3);
+    for (let i = 0; i < 6; i++) {
+      const yy = 50 - i * 24;
+      for (const sign of [-1, 1]) {
+        c.save();
+        c.translate(6, yy);
+        c.rotate(sign * 0.65);
+        ellipse(c, sign * 14, -12, 10, 25, i % 2 ? "#9ba983" : "#b4bd95");
+        c.restore();
+      }
     }
+    c.restore();
   }
-  c.restore();
 }
-function bodyPath(shape) {
+function bodyPath(shape, depth) {
   const p = new Path2D();
-  for (let y = 0; y <= 106; y += 4)
+  for (let y = 0; y <= depth + 2; y += 4)
     p.addPath(cakePath(shape), new DOMMatrix().translate(0, y));
   return p;
 }

@@ -599,3 +599,132 @@ dialog small {
     animation: none !important;
   }
 }
+/* The kitchen keeps the cake center stage; the finishing steps use a photo scene. */
+nav {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  gap: 7px;
+}
+nav button {
+  flex: 0 0 auto;
+  min-width: 40px;
+  min-height: 44px;
+  padding: 10px 3px;
+}
+nav button.active {
+  font-weight: 600;
+}
+.toppings {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.toppings .option {
+  min-height: 83px;
+}
+.toppings canvas {
+  width: 54px;
+  height: 54px;
+}
+.frosting-mode {
+  cursor: crosshair;
+}
+.layer-illustration {
+  padding: 30px 15px;
+  margin: 16px auto 28px;
+  max-width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  perspective: 400px;
+}
+.layer-illustration span {
+  padding: 18px 8px;
+  background: linear-gradient(100deg, #efd3a0, #e7bc7f);
+  border-radius: 50% / 20%;
+  text-align: center;
+  font-size: 12px;
+  box-shadow: 0 5px 0 #d6a770;
+  color: #856344;
+}
+.layer-illustration span:nth-child(2) {
+  padding: 10px;
+  background: #fff0de;
+  color: #ac7a7b;
+  box-shadow: 0 4px 0 #eec8c2;
+}
+.wide-action {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 14px;
+}
+.stage-note {
+  margin-top: 18px !important;
+}
+.frost-meter {
+  margin: 30px 0;
+}
+.frost-meter span {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.frost-meter b {
+  font-weight: 400;
+  color: #b57580;
+}
+progress {
+  display: block;
+  width: 100%;
+  height: 9px;
+  margin-top: 15px;
+  accent-color: #bf8890;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+progress::-webkit-progress-bar {
+  background: #eee2d4;
+}
+progress::-webkit-progress-value {
+  background: #c68e96;
+  border-radius: 10px;
+}
+.brush-tip {
+  padding: 22px;
+  background: #f9f0e6;
+  border: 1px dashed #d9bfa7;
+  border-radius: 12px;
+  color: #a48873;
+  font-size: 13px;
+  line-height: 1.9;
+}
+.canvas-label {
+  font-size: 15px;
+  bottom: 3%;
+}
+@media (max-width: 650px) {
+  nav {
+    gap: 12px;
+  }
+  nav button {
+    min-width: 42px;
+  }
+  .toppings .option {
+    min-height: 90px;
+  }
+  .canvas-label {
+    font-size: 12px;
+  }
+}
+.is-workbench .canvas-label {
+  bottom: auto;
+  top: 8%;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #ac9480;
+}
+@media (max-width: 650px) {
+  .is-workbench .canvas-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+}
