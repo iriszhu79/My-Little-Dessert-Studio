@@ -72,3 +72,11 @@ CHROMIUM_PATH=/path/to/chromium npm test
 ## V1.0 范围
 
 切块采用随蛋糕轮廓裁剪的视觉切线，不做物理切割。装饰中心限制在蛋糕表面的内侧区域，尺寸较大的装饰可自然探出边缘；最多添加 250 个装饰，避免低性能手机过载。没有实现可选音效、多作品相册及后续甜品类型。
+
+## 发布试玩版（GitHub Pages）
+
+仓库已提供 `.github/workflows/pages.yml`，只发布游戏的四个静态文件，不发布开发服务、依赖目录或测试文件。
+
+首次启用：进入仓库 **Settings → Pages → Build and deployment → Source**，选择 **GitHub Actions**。然后进入 **Actions → Deploy dessert studio to GitHub Pages → Run workflow**，选择 `main` 并运行。后续推送 `main` 会自动更新网站。
+
+部署成功后的试玩地址为 `https://iriszhu79.github.io/My-Little-Dessert-Studio/`。请以 Actions 中绿色的部署结果和 Pages 设置页显示的网址为准；在启用并成功部署前，该地址可能返回 404。
