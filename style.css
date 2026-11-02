@@ -728,3 +728,19 @@ progress::-webkit-progress-value {
     letter-spacing: 1px;
   }
 }
+.release-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  color: #ad7e74;
+  font-size: 11px;
+}
+.release-note button {
+  font-size: 11px;
+  padding: 8px 12px;
+  min-height: 36px;
+  background: #fff9f1;
+}

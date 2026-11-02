@@ -13,7 +13,7 @@ npm run dev
 
 服务默认监听 `0.0.0.0:5173`。可通过 `PORT` 环境变量调整端口。使用浏览器访问服务后，点击“开始制作”。不需要账户、数据库、密钥或第三方服务。
 
-应用为原生 HTML / CSS / JavaScript ES Modules，无构建步骤、无运行时 npm 依赖。也可把 `index.html`、`style.css`、`app.js`、`renderer.js` 部署到任意静态网站服务。请通过 HTTP 服务运行，避免直接双击 HTML 引起模块加载限制。
+应用为原生 HTML / CSS / JavaScript ES Modules，开发时无需构建、无运行时 npm 依赖。发布时运行 `npm run build`，生成带内容指纹的 `dist/` 静态文件，避免新旧资源缓存混用。可将 `dist/` 目录部署到任意静态网站服务。请通过 HTTP 服务运行，避免直接双击 HTML 引起模块加载限制。
 
 ## 玩法
 
@@ -79,7 +79,7 @@ CHROMIUM_PATH=/path/to/chromium npm test
 
 ## 发布试玩版（GitHub Pages）
 
-仓库已提供 `.github/workflows/pages.yml`，只发布游戏的四个静态文件，不发布开发服务、依赖目录或测试文件。
+仓库已提供 `.github/workflows/pages.yml`，只发布游戏 HTML 与带内容指纹的 JS / CSS 静态文件，不发布开发服务、依赖目录或测试文件。
 
 首次启用：进入仓库 **Settings → Pages → Build and deployment → Source**，选择 **GitHub Actions**。然后进入 **Actions → Deploy dessert studio to GitHub Pages → Run workflow**，选择 `main` 并运行。后续推送 `main` 会自动更新网站。
 

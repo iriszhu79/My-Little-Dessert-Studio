@@ -24,17 +24,18 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-      - name: Prepare public files
-        run: |
-          mkdir -p public
-          cp index.html style.css app.js renderer.js public/
-          touch public/.nojekyll
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Prepare fingerprinted public files
+        run: node scripts/build-site.js
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
-          path: public
+          path: dist
       - name: Deploy website
         id: deployment
         uses: actions/deploy-pages@v4

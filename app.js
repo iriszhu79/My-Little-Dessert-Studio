@@ -787,6 +787,7 @@ $("#confirmReset").onclick = () => {
   panel();
   toast("一份新的甜蜜，开始啦");
 };
+$("#showMaking").onclick = () => selectStep(2);
 $("#begin").onclick = () => {
   $("#welcome").close();
   save();
