@@ -1,5 +1,7 @@
 import {
   render,
+  plates,
+  loadPlateAssets,
   drawTopping,
   cakePath,
   cakeColors,
@@ -25,7 +27,7 @@ const fresh = () => ({
   frosted: false,
   frosting: [],
   stage: 0,
-  schemaVersion: 3,
+  schemaVersion: 4,
   baseCream: false,
   baseStrokes: [],
   layersChosen: false,
@@ -58,7 +60,12 @@ function valid(s) {
       (k) =>
         Number.isInteger(s[k]) &&
         s[k] >= 0 &&
-        s[k] < (k === "cream" ? creamColors.length : 4),
+        s[k] <
+          (k === "cream"
+            ? creamColors.length
+            : k === "plate"
+              ? plates.length
+              : 4),
     ) &&
     [0, 2, 4, 6, 8].includes(s.slices) &&
     Array.isArray(s.toppings) &&
@@ -116,7 +123,9 @@ try {
         ? Math.min(state.stage, 7)
         : state.stage;
     state.slices = 0;
-    state.schemaVersion = 3;
+    if (!data.schemaVersion || data.schemaVersion < 4)
+      state.plate = data.plate === 2 ? 3 : 0;
+    state.schemaVersion = 4;
     state.fillingToppings = state.fillingToppings.map((t) =>
       t.type === "mint" ? { ...t, type: "grapes" } : t,
     );
@@ -629,19 +638,18 @@ function panel() {
     }
   }
   if (step === 6)
-    ["Porcelain", "Scalloped", "Blush pink", "Glass"].forEach((n, i) =>
-      grid.append(
-        button(
-          n,
-          state.plate === i,
-          () => {
-            change(() => (state.plate = i));
-            play("scene", () => selectStep(7));
-          },
-          `<svg viewBox="0 0 80 55"><ellipse cx="40" cy="29" rx="34" ry="21" fill="${["#fffaf0", "#fff8e5", "#e7b8c0", "#deece7"][i]}" stroke="#d3bd9f"/><ellipse cx="40" cy="29" rx="27" ry="15" fill="none" stroke="#d3bd9f"/></svg>`,
-        ),
-      ),
-    );
+    plates.forEach((plate, i) => {
+      const option = button(
+        plate.name,
+        state.plate === i,
+        () => change(() => (state.plate = i)),
+        plate.thumbnail
+          ? `<img src="${plate.thumbnail}" alt="" draggable="false" />`
+          : `<svg style="width:100%;height:74px" viewBox="0 0 80 55"><ellipse cx="40" cy="29" rx="34" ry="21" fill="#fffaf0" stroke="#d3bd9f"/><ellipse cx="40" cy="29" rx="29" ry="17" fill="none" stroke="#bd9b72" stroke-dasharray="1 5"/><ellipse cx="40" cy="29" rx="25" ry="14" fill="none" stroke="#dfd4c0"/></svg>`,
+      );
+      option.disabled = Boolean(plate.file && !plate.image);
+      grid.append(option);
+    });
   if (step === 7)
     ["Cream linen", "Pink gingham", "Warm wood", "Garden picnic"].forEach(
       (n, i) =>
@@ -674,6 +682,7 @@ function panel() {
       () => selectStep(3),
     ],
     5: ["Ready to plate", () => selectStep(6)],
+    6: ["Set the scene", () => selectStep(7)],
   };
   if ([1, 4].includes(step) && state[brushKeys()[1]])
     completions[step] = ["Keep this coat", () => selectStep(step + 1)];
@@ -1111,6 +1120,11 @@ const fitCanvas = new ResizeObserver(([entry]) => {
     Math.max(1, Math.min(width, (height * 1000) / 900)) + "px";
 });
 fitCanvas.observe($(".art-area"));
+try {
+  await loadPlateAssets();
+} catch {
+  toast("Some plate artwork could not load. Please refresh to try again.");
+}
 const welcomeState = {
   ...fresh(),
   baseCream: true,

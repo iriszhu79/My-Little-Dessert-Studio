@@ -1,3 +1,83 @@
+// Original transparent artwork is retained unchanged. The source rectangles exclude
+// stray transparent padding; every texture shares the cake's orthographic view.
+export const plates = [
+  { name: "Classic Ivory" },
+  {
+    name: "Blue Ribbon",
+    file: "Blue_Ribbon.png",
+    crop: [244, 98, 690, 1086],
+    long: true,
+  },
+  { name: "Matcha Dots", file: "Matcha_Dots.png", crop: [329, 69, 875, 876] },
+  {
+    name: "Pink Gingham",
+    file: "Pink_Gingham.png",
+    crop: [151, 182, 933, 910],
+  },
+  { name: "Blue Stripes", file: "Blue_Stripes.png", crop: [342, 75, 844, 844] },
+  {
+    name: "Garden Flowers",
+    file: "Garden_Flowers.png",
+    crop: [288, 59, 930, 907],
+  },
+];
+export async function loadPlateAssets() {
+  const results = await Promise.allSettled(
+    plates
+      .filter((p) => p.file)
+      .map(async (p) => {
+        const image = new Image();
+        image.src = new URL(`./assets/plates/${p.file}`, import.meta.url).href;
+        await image.decode();
+        p.image = image;
+        // Use the exact same cropped artwork for the material tray and final scene.
+        const thumb = document.createElement("canvas");
+        thumb.width = p.long ? 126 : 100;
+        thumb.height = p.long ? 80 : 100;
+        const ctx = thumb.getContext("2d");
+        ctx.translate(thumb.width / 2, thumb.height / 2);
+        if (p.long) ctx.rotate(Math.PI / 2);
+        const scale = p.long
+          ? 120 / p.crop[3]
+          : 96 / Math.max(p.crop[2], p.crop[3]);
+        ctx.scale(scale, scale);
+        ctx.drawImage(
+          image,
+          ...p.crop,
+          -p.crop[2] / 2,
+          -p.crop[3] / 2,
+          p.crop[2],
+          p.crop[3],
+        );
+        p.thumbnail = thumb.toDataURL();
+      }),
+  );
+  if (results.some((result) => result.status === "rejected"))
+    throw new Error("Plate artwork unavailable");
+}
+function imagePlate(c, plate) {
+  if (!plate.scene) {
+    plate.scene = document.createElement("canvas");
+    plate.scene.width = 1000;
+    plate.scene.height = 900;
+    projectPlate(plate.scene.getContext("2d"), plate);
+  }
+  c.drawImage(plate.scene, 0, 0);
+}
+function projectPlate(c, plate) {
+  const [sx, sy, sw, sh] = plate.crop;
+  c.save();
+  c.translate(500, 552);
+  c.scale(1, 0.65);
+  if (plate.long) c.rotate(Math.PI / 2);
+  const scale = (plate.long ? 850 : 790) / (plate.long ? sh : Math.max(sw, sh));
+  c.scale(scale, scale);
+  c.shadowColor = "#73543a35";
+  c.shadowBlur = 20 / scale;
+  c.shadowOffsetY = 13 / scale;
+  c.drawImage(plate.image, sx, sy, sw, sh, -sw / 2, -sh / 2, sw, sh);
+  c.restore();
+}
 export const cakeColors = ["#ecd3a5", "#80513d", "#e7a3aa", "#a6b77b"];
 export const creamColors = [
   "#fff2dc",
@@ -821,58 +901,70 @@ export function render(
     c.fillStyle = stem;
     c.fill();
   }
+  if (!workbench && state.plate > 0 && plates[state.plate]?.image) {
+    imagePlate(c, plates[state.plate]);
+  } else {
+    c.save();
+    c.translate(500, 492);
+    if (!workbench && state.plate === 0) {
+      for (let i = 0; i < 48; i++) {
+        const a = (i * Math.PI) / 24;
+        ellipse(
+          c,
+          Math.cos(a) * 323,
+          Math.sin(a) * 210 + 42,
+          22,
+          16,
+          "#f9f4e8",
+        );
+      }
+    }
+    const plate = workbench ? "#fff5e5" : "#fffaf0";
+    ellipse(c, 0, 53, workbench ? 330 : 350, workbench ? 180 : 224, "#c9bfae");
+    ellipse(c, 0, 43, workbench ? 330 : 350, workbench ? 180 : 224, plate);
+    c.strokeStyle = "#d5c8b4";
+    c.lineWidth = 2;
+    c.beginPath();
+    c.ellipse(
+      0,
+      43,
+      workbench ? 313 : 331,
+      workbench ? 166 : 207,
+      0,
+      0,
+      Math.PI * 2,
+    );
+    c.stroke();
+    c.beginPath();
+    c.ellipse(
+      0,
+      43,
+      workbench ? 288 : 292,
+      workbench ? 144 : 179,
+      0,
+      0,
+      Math.PI * 2,
+    );
+    c.strokeStyle = "#dfd4c0";
+    c.stroke();
+    if (!workbench && state.plate === 0) {
+      for (let i = 0; i < 42; i++) {
+        let a = (i * Math.PI) / 21;
+        ellipse(c, Math.cos(a) * 321, 43 + Math.sin(a) * 197, 3, 2, "#bd9b72");
+      }
+    }
+    c.restore();
+  }
+  // Scale the entire cake, including lettering and toppings, around its foot.
+  // The oblong platter needs a smaller cake to leave the ribbon rim visible.
   c.save();
-  c.translate(500, 492);
-  if (!workbench && state.plate === 1) {
-    for (let i = 0; i < 48; i++) {
-      const a = (i * Math.PI) / 24;
-      ellipse(c, Math.cos(a) * 323, Math.sin(a) * 210 + 42, 22, 16, "#f9f4e8");
-    }
+  if (!workbench) {
+    const foot = 402 + (state.layered && stage >= 3 ? 145 : 85);
+    c.translate(500, 552);
+    const fit = state.plate === 1 ? 0.64 : state.plate > 0 ? 0.86 : 1;
+    c.scale(fit, fit);
+    c.translate(-500, -foot);
   }
-  const plate = workbench
-    ? "#fff5e5"
-    : ["#fffaf0", "#fbf6e9", "#e8b8be", "#ffffff55"][state.plate];
-  ellipse(
-    c,
-    0,
-    53,
-    workbench ? 330 : 350,
-    workbench ? 180 : 224,
-    !workbench && state.plate === 3 ? "#e8f4ef88" : "#c9bfae",
-  );
-  ellipse(c, 0, 43, workbench ? 330 : 350, workbench ? 180 : 224, plate);
-  c.strokeStyle = !workbench && state.plate === 3 ? "#ffffffbb" : "#d5c8b4";
-  c.lineWidth = 2;
-  c.beginPath();
-  c.ellipse(
-    0,
-    43,
-    workbench ? 313 : 331,
-    workbench ? 166 : 207,
-    0,
-    0,
-    Math.PI * 2,
-  );
-  c.stroke();
-  c.beginPath();
-  c.ellipse(
-    0,
-    43,
-    workbench ? 288 : 292,
-    workbench ? 144 : 179,
-    0,
-    0,
-    Math.PI * 2,
-  );
-  c.strokeStyle = !workbench && state.plate === 2 ? "#c58c9b" : "#dfd4c0";
-  c.stroke();
-  if (!workbench && state.plate === 1) {
-    for (let i = 0; i < 42; i++) {
-      let a = (i * Math.PI) / 21;
-      ellipse(c, Math.cos(a) * 321, 43 + Math.sin(a) * 197, 3, 2, "#bd9b72");
-    }
-  }
-  c.restore();
   c.save();
   c.translate(500, 402);
   const p = cakePath(state.shape);
@@ -1081,6 +1173,7 @@ export function render(
       c.restore();
     }
   }
+  c.restore();
   if (workbench && [1, 4].includes(stage)) {
     const travel = effect?.kind === "tools" ? 100 * (1 - progress) ** 3 : 0;
     drawBowl(c, 210 - travel, 735, cream, 0.85);

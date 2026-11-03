@@ -143,7 +143,7 @@ async function stage(p, target, mobile) {
         await settled(p);
       } else await coat(p, mobile);
     } else if (i === 3) await click(p, "Keep one layer");
-    else if (i === 6) await click(p, "Porcelain");
+    else if (i === 6) await click(p, "Set the scene");
   }
   throw Error("Could not reach " + target);
 }
@@ -200,7 +200,8 @@ test("guided baking preserves shapes, colors, lettering, plate and named PNG wit
   expect(tops).toHaveLength(5);
   expect(tops.at(-1).text).toBe("Hello, sunshine");
   await click(page, "Ready to plate");
-  await click(page, "Scalloped");
+  await click(page, "Classic Ivory");
+  await click(page, "Set the scene");
   await expect(page.locator("#phaseTitle")).toHaveText("Scene");
   await click(page, "Pink gingham");
   await expect(page.locator("#result")).toBeVisible();
@@ -405,7 +406,8 @@ test("every tablecloth stays separate from the ingredients and preserves the cak
   await click(page, "Strawberry fan");
   const tops = (await saved(page)).toppings;
   await click(page, "Ready to plate");
-  await click(page, "Glass");
+  await click(page, "Pink Gingham");
+  await click(page, "Set the scene");
   for (const name of [
     "Cream linen",
     "Pink gingham",
@@ -673,4 +675,115 @@ test("stage transitions recover from throttled animation frames without firing o
   });
   await expect(page.locator("#phaseTitle")).toHaveText("Cream");
   expect((await saved(page)).stage).toBe(1);
+});
+
+test("six original plates preserve the recipe, restore and export on all four shapes", async ({
+  page,
+}, info) => {
+  test.setTimeout(180000);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await start(page);
+  const seed = await saved(page);
+  const names = [
+    "Classic Ivory",
+    "Blue Ribbon",
+    "Matcha Dots",
+    "Pink Gingham",
+    "Blue Stripes",
+    "Garden Flowers",
+  ];
+  const toppings = [
+    {
+      id: "message",
+      type: "text",
+      x: 0,
+      y: 0,
+      scale: 1,
+      rotation: 0,
+      text: "For You",
+    },
+  ];
+  for (let shape = 0; shape < 4; shape++) {
+    await page.evaluate(
+      (s) => localStorage.setItem("little-dessert-v1", JSON.stringify(s)),
+      {
+        ...seed,
+        shape,
+        stage: 6,
+        baseCream: true,
+        frosted: true,
+        layered: true,
+        toppings,
+      },
+    );
+    await page.reload();
+    await expect(page.locator("#phaseTitle")).toHaveText("Plate");
+    const previews = new Set();
+    for (let plate = 0; plate < names.length; plate++) {
+      await click(page, names[plate]);
+      await expect(button(page, names[plate])).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect((await saved(page)).plate).toBe(plate);
+      expect((await saved(page)).toppings).toEqual(toppings);
+      previews.add(await page.locator("#cake").evaluate((c) => c.toDataURL()));
+      if (shape === 0) {
+        await page.reload();
+        await expect(button(page, names[plate])).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        );
+        await click(page, "← Back");
+        await click(page, "Ready to plate");
+        await expect(button(page, names[plate])).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        );
+      }
+      await click(page, "Set the scene");
+      await click(page, "Cream linen");
+      await expect(page.locator("#result")).toBeVisible();
+      const download = page.waitForEvent("download");
+      await click(page, "Save image");
+      const png = await readFile(await (await download).path());
+      expect(png.subarray(1, 4).toString()).toBe("PNG");
+      expect(
+        png.equals(
+          Buffer.from(
+            (await page.locator("#resultImage").getAttribute("src")).split(
+              ",",
+            )[1],
+            "base64",
+          ),
+        ),
+      ).toBe(true);
+      await click(page, "Keep editing");
+      await click(page, "← Back");
+    }
+    expect(previews.size).toBe(6);
+  }
+  await page.screenshot({ path: info.outputPath("six-plates.png") });
+});
+
+test("legacy pink plates migrate without losing decorations", async ({
+  page,
+}) => {
+  await start(page);
+  const seed = await saved(page);
+  await page.evaluate(
+    (s) =>
+      localStorage.setItem(
+        "little-dessert-v1",
+        JSON.stringify({ ...s, schemaVersion: 3, plate: 2, stage: 6 }),
+      ),
+    seed,
+  );
+  await page.reload();
+  await expect(button(page, "Pink Gingham")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await click(page, "Blue Ribbon");
+  expect((await saved(page)).schemaVersion).toBe(4);
 });

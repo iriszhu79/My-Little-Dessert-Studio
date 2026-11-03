@@ -901,3 +901,10 @@ dialog button {
     scroll-behavior: auto !important;
   }
 }
+
+.option img {
+  width: 100%;
+  height: 74px;
+  object-fit: contain;
+  pointer-events: none;
+}

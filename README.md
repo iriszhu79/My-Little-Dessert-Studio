@@ -21,7 +21,7 @@ The development server listens on port 5173 and accepts an optional `PORT` varia
 4. **Layers** — Keep one layer, or explicitly add a second sponge with a short falling animation. Either layer choice automatically opens Frost. Revisiting a stage never adds a layer or silently finishes the frosting.
 5. **Frost** — Hand-spread a separate outer coat with the same spatula control and 85% completion rule. Each gesture, including its automatic finish, is one undo action. The sides gradually take on the cream color as coverage increases; reaching 85% automatically opens Decorate.
 6. **Decorate** — All original fruit, sliced fruit, sweets, flowers, bows, pearls, cream piping, and custom lettering remain available. Enter a message of up to 20 characters, or use “Happy Day” / “For You”. Add multiple pieces, drag them, and select them to resize, rotate, or delete. On a keyboard, arrow keys move a selected decoration; Delete / Backspace removes it. Clear requires confirmation and can be undone. Select “Ready to plate” after arranging your decorations.
-7. **Plate** — Move from the pedestal to Porcelain, Scalloped, Blush pink, or Glass without losing anything. Selecting a plate opens Scene automatically.
+7. **Plate** — Compare six plates without losing anything: Classic Ivory (the existing cream porcelain with gold dots), Blue Ribbon, Matcha Dots, Pink Gingham, Blue Stripes, and Garden Flowers. Select “Set the scene” when ready.
 8. **Scene** — Choose Cream linen, Pink gingham, Warm wood, or Garden picnic. Selecting a scene opens the final photo with a small pull-back. Name the cake, and export a 1000 × 900 PNG containing only the artwork. Mobile users can also press and hold the finished image.
 
 All interface copy, accessible names, prompts, errors, and download messages are English. User-authored messages in older saves are preserved as entered. On desktop, the entire studio fits one viewport: a compact ingredient area on the left and a separately clipped drawing area on the right. The cake is centered inside that right pane. Back, Start over, and Finish stay in the bottom action bar. On mobile, the cake is above the ingredient area, with horizontal material trays. There is no interactive step strip, generic Next button, or disabled “Spread to 85%” button. Animations are short and respect the system's reduced-motion preference.
@@ -31,6 +31,8 @@ The game guides players forward after completing each stage. Free-form filling a
 ## Autosave and privacy
 
 Every edit is saved locally under `little-dessert-v1`. The current stage, independent cream strokes, single/double-layer choice, fillings, decorations, colors, plating, scene, and cake name survive refresh. Undo history does not survive refresh. No artwork or personal data is uploaded.
+
+Legacy plate choices migrate to Classic Ivory, except Blush pink which becomes Pink Gingham. The new schema preserves all six plate choices across refresh.
 
 V1 / V1.1 / V2 saves migrate into the expanded schema while preserving their shapes, colors, messages, and decorations. The removed Slice stage migrates to Scene, saved cut lines are cleared, and mint fillings become grapes while keeping their placement. Invalid recipe data falls back safely; a corrupt JSON save displays an English recovery message. If browser storage is disabled, the game remains playable and PNG export works, with an autosave warning.
 
@@ -42,7 +44,7 @@ npm run format:check
 npm run build
 ```
 
-Playwright runs 20 desktop / Pixel 7 browser cases covering the full baking ritual, pointer-following spatulas, real partial strokes, independent raster checks of 85% auto-completion, explicit layering, backtracking, native touch and mouse gestures, ingredient placement, resizing, rotation, deletion, confirmed clear/reset, custom lettering and colors, all plates and scenes, the removed Slice stage, green grapes, viewport fitting, fixed bottom actions, non-overlapping scene backgrounds, automatic stage changes (including held pointers and throttled animation frames), frameless layout, reduced motion, English interface copy, migration, damaged saves, disabled storage, and PNG dimensions and pixel agreement with the final preview.
+Playwright runs 24 desktop / Pixel 7 browser cases covering the full baking ritual, pointer-following spatulas, real partial strokes, independent raster checks of 85% auto-completion, explicit layering, backtracking, native touch and mouse gestures, ingredient placement, resizing, rotation, deletion, confirmed clear/reset, custom lettering and colors, all plates and scenes, the removed Slice stage, green grapes, viewport fitting, fixed bottom actions, non-overlapping scene backgrounds, automatic stage changes (including held pointers and throttled animation frames), frameless layout, reduced motion, English interface copy, migration, damaged saves, disabled storage, and PNG dimensions and pixel agreement with the final preview.
 
 Layout checks include 1440×900, 1366×768, 1280×720, 1024×600, 390×844, and 320×640 viewports. The page itself does not scroll; exceptionally small screens may scroll within the material area without visible scroll rails. Reports/screenshots are generated in ignored `test-results/`. Mobile coverage uses Chromium device emulation and native touch events; real iOS / Safari hardware is not yet verified.
 
@@ -57,10 +59,10 @@ The cloud image provides `/usr/bin/chromium`. Elsewhere, set `CHROMIUM_PATH=/pat
 | `app.js`                | Existing recipe model, migration, workflow, animation orchestration, pointer interactions, history, and image export       |
 | `renderer.js`           | Original Canvas illustrations: all silhouettes, sponge grain, frosting, fruit, bowls, spatula, pedestal, plates, and scene |
 | `server.js`             | Development server using Node.js built-in modules                                                                          |
-| `scripts/build-site.js` | Production asset fingerprinting, including the renderer's module import                                                    |
+| `scripts/build-site.js` | Production asset fingerprinting, including plate PNGs and the renderer import                                              |
 | `tests/studio.spec.js`  | Browser acceptance and regression checks                                                                                   |
 
-Add a material by extending `toppingNames` / `drawTopping` in the renderer and its ingredient category in the existing app. The visual assets are original vector drawings; no video frames or third-party artwork are shipped.
+Add a material by extending `toppingNames` / `drawTopping` in the renderer and its ingredient category in the existing app. Cake and ingredient illustrations are original Canvas drawings. Five transparent plate PNGs were supplied by the project owner; they are retained unchanged in `assets/plates/`. Runtime source rectangles exclude stray transparent padding, and a shared orthographic projection matches the cake view. Blue Ribbon is rotated horizontally and uses a smaller cake to expose its bows. Classic Ivory retains the existing vector plate. No video frames are shipped.
 
 ## Publish
 
