@@ -3,7 +3,8 @@ import { existsSync } from "node:fs";
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
-  workers: 2,
+  // Each Canvas browser uses several raster threads; avoid contention in cloud runs.
+  workers: 1,
   use: {
     baseURL: "http://127.0.0.1:5173",
     launchOptions: {

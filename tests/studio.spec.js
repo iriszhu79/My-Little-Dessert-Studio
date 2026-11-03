@@ -63,6 +63,60 @@ async function brush(
     await page.mouse.up();
   }
 }
+async function coat(page, mobile) {
+  await page.locator("#cake").scrollIntoViewIfNeeded();
+  const b = await page.locator("#cake").boundingBox();
+  const point = (x, y) => ({
+    x: b.x + ((500 + x) * b.width) / 1000,
+    y: b.y + ((402 + y) * b.height) / 900,
+  });
+  const points = [
+    [0, 0],
+    [0, -130],
+    [-220, -100],
+    [220, -100],
+    [220, -35],
+    [-220, -35],
+    [-220, 30],
+    [220, 30],
+    [220, 95],
+    [-220, 95],
+    [0, 145],
+    [0, -150],
+    [-240, 0],
+    [240, 0],
+  ];
+  const client = mobile ? await page.context().newCDPSession(page) : null;
+  const first = point(...points[0]);
+  if (mobile)
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [first],
+    });
+  else {
+    await page.mouse.move(first.x, first.y);
+    await page.mouse.down();
+  }
+  for (const p of points.slice(1)) {
+    const pos = point(...p);
+    if (mobile)
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [pos],
+      });
+    else await page.mouse.move(pos.x, pos.y, { steps: 2 });
+    if ((await page.locator("#frostProgress").evaluate((e) => e.value)) >= 100)
+      break;
+  }
+  if (mobile)
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  else await page.mouse.up();
+  await settled(page);
+  await expect(page.locator("#frostPercent")).toHaveText("100%");
+}
 test("complete baking ritual preserves every feature and exports the actual named artwork", async ({
   page,
 }, info) => {
@@ -87,20 +141,14 @@ test("complete baking ritual preserves every feature and exports the actual name
   await click(page, "Next →");
   await click(page, "Strawberry");
   const before = await page.locator("#cake").evaluate((c) => c.toDataURL());
-  // Sample the first animation frame inside the browser, before automation can wait past it.
-  const intermediate = await page.evaluate(
-    () =>
-      new Promise((resolve) => {
-        document.querySelector(".wide-action").click();
-        requestAnimationFrame(() =>
-          resolve(document.querySelector("#cake").toDataURL()),
-        );
-      }),
-  );
-  await settled(page);
-  const completed = await page.locator("#cake").evaluate((c) => c.toDataURL());
-  expect(completed !== before).toBe(true);
-  expect(completed !== intermediate).toBe(true);
+  expect((await saved(page)).baseCream).toBe(false);
+  await expect(button(page, "Spread to 85%")).toBeDisabled();
+  await brush(page, info.project.name === "mobile");
+  expect((await saved(page)).baseCream).toBe(false);
+  expect(
+    (await page.locator("#cake").evaluate((c) => c.toDataURL())) !== before,
+  ).toBe(true);
+  await coat(page, info.project.name === "mobile");
   expect((await saved(page)).baseCream).toBe(true);
   await click(page, "Next →");
   await click(page, "Strawberry half");
@@ -121,7 +169,7 @@ test("complete baking ritual preserves every feature and exports the actual name
   await brush(page, info.project.name === "mobile");
   expect((await saved(page)).frosting).toHaveLength(1);
   expect((await saved(page)).frosted).toBe(false);
-  await click(page, "Smooth it for me");
+  await coat(page, info.project.name === "mobile");
   expect((await saved(page)).frosted).toBe(true);
   await click(page, "Next →");
   await page
@@ -154,14 +202,11 @@ test("complete baking ritual preserves every feature and exports the actual name
   await step(page, "Plate");
   for (const name of ["Porcelain", "Scalloped", "Blush pink", "Glass"])
     await click(page, name);
-  await step(page, "Slice");
-  for (const n of [2, 4, 6, 8]) {
-    await click(page, `${n} slices`);
-    expect((await saved(page)).slices).toBe(n);
-  }
-  await click(page, "Keep whole");
-  expect((await saved(page)).slices).toBe(0);
-  await click(page, "6 slices");
+  await expect(
+    page
+      .getByRole("navigation")
+      .getByRole("button", { name: "Slice", exact: true }),
+  ).toHaveCount(0);
   await step(page, "Scene");
   for (const name of [
     "Cream linen",
@@ -221,7 +266,7 @@ test("complete baking ritual preserves every feature and exports the actual name
 
 test("one layer stays one layer, cream is not implicit, and backtracking never adds ingredients", async ({
   page,
-}) => {
+}, info) => {
   await start(page);
   await step(page, "Decorate");
   expect(await saved(page)).toMatchObject({
@@ -234,7 +279,7 @@ test("one layer stays one layer, cream is not implicit, and backtracking never a
   await step(page, "Layers");
   await click(page, "Keep one layer");
   await step(page, "Frost");
-  await click(page, "Smooth it for me");
+  await coat(page, info.project.name === "mobile");
   expect((await saved(page)).layered).toBe(false);
   await step(page, "Sponge");
   await click(page, "Heart");
@@ -266,14 +311,18 @@ test("mouse and native touch strokes persist, undo as one gesture, and stay insi
   ).toBeGreaterThan(10);
   await click(page, "Undo");
   expect((await saved(page)).baseStrokes).toHaveLength(0);
-  await page.locator("#cake").click({ position: { x: 30, y: 30 } });
+  const empty = await page.locator("#cake").boundingBox();
+  await page
+    .locator("#cake")
+    .click({ position: { x: empty.width - 30, y: 30 } });
   expect((await saved(page)).baseStrokes).toHaveLength(0);
   await brush(page, info.project.name === "mobile");
   s = await saved(page);
   await page.reload();
   expect(await saved(page)).toEqual(s);
-  await click(page, "Smooth it for me");
+  await coat(page, info.project.name === "mobile");
   await expect(page.locator("#frostPercent")).toHaveText("100%");
+  s = await saved(page);
   await step(page, "Frost");
   expect((await saved(page)).frosted).toBe(false);
   expect((await saved(page)).layered).toBe(false);
@@ -413,7 +462,6 @@ test("ingredient tray accepts placement, all original materials remain, and UI s
     "Frost",
     "Decorate",
     "Plate",
-    "Slice",
     "Scene",
   ]) {
     await step(page, name);
@@ -479,7 +527,7 @@ test("legacy and damaged saves open safely, and reset requires confirmation", as
   await click(page, "Strawberry half");
   let s = await saved(page);
   expect(s).toMatchObject({
-    schemaVersion: 2,
+    schemaVersion: 3,
     shape: 1,
     baseCream: true,
     frosted: true,
@@ -512,7 +560,7 @@ test("legacy and damaged saves open safely, and reset requires confirmation", as
 
 test("reduced motion removes transition waits and unavailable storage still allows image export", async ({
   page,
-}) => {
+}, info) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.addInitScript(() => {
     Storage.prototype.setItem = function () {
@@ -523,7 +571,7 @@ test("reduced motion removes transition waits and unavailable storage still allo
   await click(page, "Start baking →");
   await expect(page.locator("#saved")).toHaveText("Autosave unavailable");
   await step(page, "Cream");
-  await click(page, "Smooth it for me");
+  await coat(page, info.project.name === "mobile");
   await expect(page.locator(".workspace")).not.toHaveAttribute(
     "aria-busy",
     "true",
@@ -534,4 +582,164 @@ test("reduced motion removes transition waits and unavailable storage still allo
   const downloaded = page.waitForEvent("download");
   await click(page, "Save image");
   expect((await downloaded).suggestedFilename()).toBe("My-little-cake.png");
+});
+
+test("spatula follows the pointer without painting on hover; both coats finish at 85 percent of real brush area", async ({
+  page,
+}, info) => {
+  test.setTimeout(60000);
+  await start(page);
+  for (const [stage, key, flag] of [
+    ["Cream", "baseStrokes", "baseCream"],
+    ["Frost", "frosting", "frosted"],
+  ]) {
+    await step(page, stage);
+    await click(page, "Strawberry");
+    expect((await saved(page))[flag]).toBe(false);
+    expect((await saved(page))[key]).toHaveLength(0);
+    await expect(button(page, "Spread to 85%")).toBeDisabled();
+    await expect(button(page, "Smooth it for me")).toHaveCount(0);
+    await page.locator("#cake").scrollIntoViewIfNeeded();
+    const box = await page.locator("#cake").boundingBox();
+    const patch = () =>
+      page
+        .locator("#cake")
+        .evaluate((c) => [
+          ...c.getContext("2d").getImageData(490, 392, 20, 20).data,
+        ]);
+    const original = await patch();
+    await page.mouse.move(
+      box.x + box.width / 2,
+      box.y + (402 * box.height) / 900,
+    );
+    await page.evaluate(
+      () =>
+        new Promise((r) =>
+          requestAnimationFrame(() => requestAnimationFrame(r)),
+        ),
+    );
+    expect(await patch()).not.toEqual(original);
+    expect((await saved(page))[key]).toHaveLength(0);
+    await page.mouse.move(
+      box.x + (590 * box.width) / 1000,
+      box.y + (402 * box.height) / 900,
+    );
+    await page.evaluate(
+      () =>
+        new Promise((r) =>
+          requestAnimationFrame(() => requestAnimationFrame(r)),
+        ),
+    );
+    expect(await patch()).toEqual(original);
+    await brush(page, info.project.name === "mobile");
+    const partial = await saved(page);
+    expect(partial[flag]).toBe(false);
+    const partialProgress = await page
+      .locator("#frostProgress")
+      .evaluate((e) => e.value);
+    expect(partialProgress).toBeGreaterThan(0);
+    expect(partialProgress).toBeLessThan(85);
+    await coat(page, info.project.name === "mobile");
+    const done = await saved(page);
+    expect(done[flag]).toBe(true);
+    const raw = await page.evaluate(async (key) => {
+      const { cakePath } = await import("/renderer.js"),
+        s = JSON.parse(localStorage.getItem("little-dessert-v1"));
+      const mask = document.createElement("canvas"),
+        paint = document.createElement("canvas");
+      for (const c of [mask, paint]) {
+        c.width = 128;
+        c.height = 96;
+      }
+      const a = mask.getContext("2d"),
+        b = paint.getContext("2d");
+      for (const c of [a, b]) c.setTransform(0.18, 0, 0, 0.18, 64, 43);
+      a.fill(cakePath(s.shape));
+      b.clip(cakePath(s.shape));
+      b.lineWidth = 86;
+      b.lineCap = "round";
+      b.lineJoin = "round";
+      for (const stroke of s[key]) {
+        if (!stroke.length) continue;
+        b.beginPath();
+        b.moveTo(stroke[0].x, stroke[0].y);
+        for (const p of stroke) b.lineTo(p.x, p.y);
+        b.stroke();
+        b.beginPath();
+        b.arc(stroke[0].x, stroke[0].y, 43, 0, Math.PI * 2);
+        b.fill();
+      }
+      const x = a.getImageData(0, 0, 128, 96).data,
+        y = b.getImageData(0, 0, 128, 96).data;
+      let area = 0,
+        covered = 0;
+      for (let i = 3; i < x.length; i += 4)
+        if (x[i] > 127) {
+          area++;
+          if (y[i] > 127) covered++;
+        }
+      return covered / area;
+    }, key);
+    expect(raw).toBeGreaterThan(0.83);
+    expect(raw).toBeLessThan(0.9);
+    await click(page, "Undo");
+    expect((await saved(page))[flag]).toBe(false);
+    expect((await saved(page))[key]).toEqual(partial[key]);
+    await expect(button(page, "Spread to 85%")).toBeDisabled();
+  }
+});
+
+test("grapes replace filling mint, slices are absent, legacy recipes migrate, and the open worktop is centered", async ({
+  page,
+}, info) => {
+  await start(page);
+  await step(page, "Filling");
+  await expect(button(page, "Mint leaves")).toHaveCount(0);
+  await click(page, "Green grapes");
+  expect((await saved(page)).fillingToppings[0].type).toBe("grapes");
+  await expect(
+    page
+      .getByRole("navigation")
+      .getByRole("button", { name: "Slice", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByRole("navigation").getByRole("button")).toHaveCount(8);
+  if (info.project.name === "desktop") {
+    const canvas = await page.locator("#cake").boundingBox(),
+      aside = await page.locator("aside").boundingBox(),
+      width = await page.evaluate(() => innerWidth);
+    expect(Math.abs(canvas.x + canvas.width / 2 - width / 2)).toBeLessThan(1);
+    expect(aside.x + aside.width).toBeLessThan(
+      canvas.x + canvas.width / 2 - 80,
+    );
+    const styles = await page.evaluate(() =>
+      ["aside", ".canvas-wrap"].map((s) => {
+        const c = getComputedStyle(document.querySelector(s));
+        return [c.borderTopWidth, c.boxShadow];
+      }),
+    );
+    expect(styles).toEqual([
+      ["0px", "none"],
+      ["0px", "none"],
+    ]);
+  }
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem("little-dessert-v1"));
+    s.schemaVersion = 2;
+    s.stage = 8;
+    s.slices = 6;
+    s.fillingToppings[0].type = "mint";
+    localStorage.setItem("little-dessert-v1", JSON.stringify(s));
+  });
+  await page.reload();
+  await expect(
+    page
+      .getByRole("navigation")
+      .getByRole("button", { name: "Scene", exact: true }),
+  ).toHaveAttribute("aria-current", "step");
+  await step(page, "Filling");
+  const s = await saved(page);
+  expect(s.schemaVersion).toBe(3);
+  expect(s.slices).toBe(0);
+  expect(s.fillingToppings[0].type).toBe("grapes");
+  await expect(button(page, "Mint leaves")).toHaveCount(0);
 });

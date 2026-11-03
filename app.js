@@ -25,7 +25,7 @@ const fresh = () => ({
   frosted: false,
   frosting: [],
   stage: 0,
-  schemaVersion: 2,
+  schemaVersion: 3,
   baseCream: false,
   baseStrokes: [],
   layersChosen: false,
@@ -45,7 +45,10 @@ let state = fresh(),
   presentation = false,
   effect = null,
   effectFrame = null,
-  restoreNotice = "";
+  restoreNotice = "",
+  tool = null,
+  hoverFrame = null,
+  coverageMemo = null;
 const clone = (v) => structuredClone(v);
 function valid(s) {
   return (
@@ -80,10 +83,9 @@ try {
   if (valid(data)) {
     // Upgrade existing V1 works without losing any decorations.
     state = { ...fresh(), ...data };
-    if (data.schemaVersion !== 2) {
+    if (!data.schemaVersion || data.schemaVersion < 2) {
       state.baseCream = true;
       state.layersChosen = Boolean(data.layered);
-      state.schemaVersion = 2;
     }
     if (!Array.isArray(data.fillingToppings)) {
       state.layered = true;
@@ -91,6 +93,8 @@ try {
       state.stage = 5;
       state.baseCream = true;
     }
+    if ((!data.schemaVersion || data.schemaVersion < 3) && state.stage >= 7)
+      state.stage = 7;
     if (!validExtras(state))
       state = {
         ...fresh(),
@@ -106,6 +110,15 @@ try {
         baseCream: true,
         stage: 5,
       };
+    state.stage =
+      data.schemaVersion < 3 || !data.schemaVersion
+        ? Math.min(state.stage, 7)
+        : state.stage;
+    state.slices = 0;
+    state.schemaVersion = 3;
+    state.fillingToppings = state.fillingToppings.map((t) =>
+      t.type === "mint" ? { ...t, type: "grapes" } : t,
+    );
     step = state.stage;
     restored = true;
   }
@@ -118,7 +131,7 @@ function validExtras(s) {
     validToppings &&
     Number.isInteger(s.stage) &&
     s.stage >= 0 &&
-    s.stage < 9 &&
+    s.stage < 8 &&
     Number.isInteger(s.fillingCream) &&
     s.fillingCream >= 0 &&
     s.fillingCream < creamColors.length &&
@@ -173,7 +186,7 @@ function play(kind, done, id, previousBackground) {
     return;
   }
   const duration =
-      kind === "cream"
+      kind === "cream-complete"
         ? 650
         : kind === "layer"
           ? 580
@@ -216,7 +229,14 @@ function checkpoint() {
 }
 function paint() {
   const coverage = [1, 4].includes(step) ? frostCoverage() : 0;
-  render(ctx, state, { selected, stage: step, presentation, effect, coverage });
+  render(ctx, state, {
+    selected,
+    stage: step,
+    presentation,
+    effect,
+    coverage,
+    tool,
+  });
   $("#workMode").textContent =
     !presentation && step < 6 ? "THE CAKE STAND" : "YOUR SWEET LITTLE SCENE";
   canvas.classList.toggle(
@@ -229,6 +249,18 @@ function paint() {
     progress.value = coverage;
     $("#frostPercent").textContent = Math.round(progress.value) + "%";
   }
+  $("#next").disabled = [1, 4].includes(step) && !state[brushKeys()[1]];
+  $("#next").textContent =
+    step === 7
+      ? "Finish cake ♡"
+      : $("#next").disabled
+        ? "Spread to 85%"
+        : "Next →";
+  $("#hint").textContent = [1, 4].includes(step)
+    ? state[brushKeys()[1]]
+      ? "A lovely smooth finish. Choose a bowl to recoat, or continue."
+      : "Hold and sweep with your spatula. At 85%, we will finish the last little bit."
+    : $("#hint").textContent;
   $("#undo").disabled = !history.length;
   $("#selectionTools").hidden =
     !activeToppings().some((t) => t.id === selected) || ![2, 5].includes(step);
@@ -255,7 +287,6 @@ const stepNames = [
   "Frost",
   "Decorate",
   "Plate",
-  "Slice",
   "Scene",
 ];
 const subtitles = [
@@ -266,23 +297,22 @@ const subtitles = [
   "The finishing swirl",
   "Make it wonderfully yours",
   "A plate for your creation",
-  "A slice of happiness",
   "Set a lovely little scene",
 ];
 const descriptions = [
   "Pick a shape and a sponge flavor. We will take it from here.",
-  "Choose a cream, then tap or sweep across your sponge.",
+  "Choose a bowl. Hold and sweep to spread the cream yourself.",
   "Add as much filling as you like. A little chocolate is lovely, too.",
   "Keep it simple, or tuck your filling under another soft layer.",
-  "Sweep the spatula over the top, or let us give you a hand.",
+  "Your hand, your spatula. Smooth the coat to 85% for a soft finish.",
   "Pick a treat. Place, turn, and arrange it just how you like.",
   "From the cake stand to a little moment worth keeping.",
-  "For sharing, or all for you. There is no wrong answer.",
   "Choose a cozy setting for your final photograph.",
 ];
 function selectStep(next) {
   const previousBackground = step < 6 ? 0 : state.background;
   stopEffect();
+  tool = null;
   selected = null;
   step = next;
   presentation = false;
@@ -364,13 +394,13 @@ function bowls(p, first = false) {
     custom = first ? "customFilling" : "customCream";
   creamColors.forEach((color, i) => {
     const b = button(creamNames[i], state[key] === i && !state[custom], () => {
+      stopEffect();
       change(() => {
         state[key] = i;
         state[custom] = null;
-        if (first) {
-          state.cream = i;
-          state.customCream = null;
-        }
+        const [strokes, filled] = brushKeys();
+        state[strokes] = [];
+        state[filled] = false;
       });
     });
     const icon = document.createElement("canvas");
@@ -393,8 +423,11 @@ function bowls(p, first = false) {
   );
   input.onchange = () =>
     change(() => {
+      stopEffect();
       state[custom] = input.value;
-      if (first) state.customCream = input.value;
+      const [strokes, filled] = brushKeys();
+      state[strokes] = [];
+      state[filled] = false;
     });
   field.append(input);
   p.append(field);
@@ -461,7 +494,7 @@ function panel() {
     active.getBoundingClientRect().left -
     nav.getBoundingClientRect().left -
     (nav.clientWidth - active.clientWidth) / 2;
-  $("#stepCount").textContent = `0${step + 1} / 09`;
+  $("#stepCount").textContent = `0${step + 1} / 08`;
   $("#phaseTitle").textContent = [
     "The soft beginning",
     "A bowl of something lovely",
@@ -470,7 +503,6 @@ function panel() {
     "The finishing touch",
     "The treat tray",
     "Ready to plate",
-    "A little to share",
     "A moment to keep",
   ][step];
   const p = $("#panel");
@@ -518,13 +550,8 @@ function panel() {
     const tip = document.createElement("div");
     tip.className = "brush-tip";
     tip.textContent =
-      "Tap or sweep across the cake. Each stroke can be undone.";
+      "Hold and drag your spatula. Reach 85% coverage and the final swirls will settle automatically.";
     p.append(tip);
-    const done = document.createElement("button");
-    done.className = "wide-action";
-    done.textContent = "Smooth it for me";
-    done.onclick = () => spreadCream();
-    p.append(done);
     const reset = document.createElement("button");
     reset.className = "subtle clear";
     reset.textContent = "Try frosting again";
@@ -622,6 +649,8 @@ function panel() {
       Details: ["flower", "bow", "pearls", "cream"],
       Lettering: ["text"],
     }[current];
+    if (step === 2) types[types.indexOf("mint")] = "grapes";
+    else if (current === "Fruit") types.push("grapes");
     types.forEach((type) => grid.append(material(type)));
     if (step === 5 && category === "Lettering") {
       const input = document.createElement("input");
@@ -657,26 +686,6 @@ function panel() {
       ),
     );
   if (step === 7)
-    [0, 2, 4, 6, 8].forEach((n) =>
-      grid.append(
-        button(
-          n ? `${n} slices` : "Keep whole",
-          state.slices === n,
-          () => {
-            change(() => (state.slices = n));
-            play("slice");
-          },
-          `<svg viewBox="0 0 80 55"><ellipse cx="40" cy="27" rx="28" ry="20" fill="#edd3b8" stroke="#c6a178"/>${Array.from(
-            { length: n },
-            (_, i) => {
-              const a = -Math.PI / 2 + (i * Math.PI * 2) / n;
-              return `<path d="M40 27L${40 + 28 * Math.cos(a)} ${27 + 20 * Math.sin(a)}" stroke="#b18b68"/>`;
-            },
-          ).join("")}</svg>`,
-        ),
-      ),
-    );
-  if (step === 8)
     ["Cream linen", "Pink gingham", "Warm wood", "Garden picnic"].forEach(
       (n, i) =>
         grid.append(
@@ -702,12 +711,7 @@ function panel() {
     p.append(b);
   }
   $("#prev").disabled = step === 0;
-  $("#next").textContent =
-    step === 8
-      ? "Finish cake ♡"
-      : [1, 4].includes(step) && !state[brushKeys()[1]]
-        ? "Spread & continue →"
-        : "Next →";
+  $("#next").textContent = step === 7 ? "Finish cake ♡" : "Next →";
   $("#hint").textContent = [1, 4].includes(step)
     ? "Tap or sweep across the cake to spread cream"
     : step === 2 || step === 5
@@ -756,19 +760,65 @@ function add(type, text, position) {
 function frostCoverage() {
   const [strokes, filled] = brushKeys();
   if (state[filled]) return 100;
-  const points = state[strokes].flat();
-  if (!points.length) return 0;
-  let count = 0,
-    covered = 0;
-  const path = cakePath(state.shape);
-  for (let x = -240; x <= 240; x += 24)
-    for (let y = -160; y <= 160; y += 20) {
-      if (ctx.isPointInPath(path, x, y)) {
-        count++;
-        if (points.some((p) => Math.hypot(p.x - x, p.y - y) < 43)) covered++;
-      }
+  const list = state[strokes];
+  if (
+    !coverageMemo ||
+    coverageMemo.list !== list ||
+    coverageMemo.shape !== state.shape
+  ) {
+    const samples = [],
+      path = cakePath(state.shape);
+    for (let x = -294; x <= 294; x += 12)
+      for (let y = -198; y <= 198; y += 12)
+        if (ctx.isPointInPath(path, x, y)) samples.push({ x, y });
+    coverageMemo = {
+      list,
+      shape: state.shape,
+      samples,
+      seen: [],
+      covered: new Uint8Array(samples.length),
+      count: 0,
+    };
+  }
+  const m = coverageMemo;
+  list.forEach((stroke, i) => {
+    for (let j = m.seen[i] || 0; j < stroke.length; j++) {
+      const p = stroke[j];
+      m.samples.forEach((s, k) => {
+        if (!m.covered[k] && (s.x - p.x) ** 2 + (s.y - p.y) ** 2 <= 43 ** 2) {
+          m.covered[k] = 1;
+          m.count++;
+        }
+      });
     }
-  return count ? (covered / count) * 100 : 0;
+    m.seen[i] = stroke.length;
+  });
+  return m.samples.length ? (m.count / m.samples.length) * 100 : 0;
+}
+function maybeCompleteFrost() {
+  const filled = brushKeys()[1];
+  if (!state[filled] && frostCoverage() >= 85) {
+    state[filled] = true;
+    play("cream-complete", () => {
+      panel();
+      toast("Beautifully smooth. Your coat is ready.");
+    });
+  }
+}
+function moveTool(pos, painting = false) {
+  const dy = tool ? pos.y - tool.y : 0;
+  tool = {
+    ...pos,
+    angle: -0.55 + Math.max(-0.18, Math.min(0.18, dy / 100)),
+    painting,
+  };
+}
+function requestHoverPaint() {
+  if (hoverFrame === null)
+    hoverFrame = requestAnimationFrame(() => {
+      hoverFrame = null;
+      paint();
+    });
 }
 function startFrost(e, pos) {
   if (
@@ -787,10 +837,13 @@ function startFrost(e, pos) {
     moved: true,
   };
   state[brushKeys()[0]].push([pos]);
+  moveTool(pos, true);
+  maybeCompleteFrost();
   canvas.setPointerCapture(e.pointerId);
   paint();
 }
 function continueFrost(pos) {
+  if (state[brushKeys()[1]]) return;
   const points = state[brushKeys()[0]].at(-1),
     last = points.at(-1);
   if (points.length >= 1700) return;
@@ -802,9 +855,13 @@ function continueFrost(pos) {
       x: last.x + ((pos.x - last.x) * i) / n,
       y: last.y + ((pos.y - last.y) * i) / n,
     };
-    if (ctx.isPointInPath(cakePath(state.shape), p.x, p.y)) points.push(p);
+    if (ctx.isPointInPath(cakePath(state.shape), p.x, p.y)) {
+      points.push(p);
+      maybeCompleteFrost();
+      if (state[brushKeys()[1]]) break;
+    }
   }
-  if (frostCoverage() >= 94) state[brushKeys()[1]] = true;
+  maybeCompleteFrost();
 }
 function coordinates(e) {
   const r = canvas.getBoundingClientRect();
@@ -817,6 +874,7 @@ canvas.addEventListener("pointerdown", (e) => {
   if (e.button !== 0 || presentation) return;
   stopEffect();
   const pos = coordinates(e);
+  if ([1, 4].includes(step)) moveTool(pos);
   if ([1, 4].includes(step) && !presentation) {
     startFrost(e, pos);
     return;
@@ -842,10 +900,14 @@ canvas.addEventListener("pointerdown", (e) => {
   paint();
 });
 canvas.addEventListener("pointermove", (e) => {
+  if ([1, 4].includes(step) && !presentation) {
+    moveTool(coordinates(e), Boolean(drag?.brush));
+    requestHoverPaint();
+  }
   if (!drag || e.pointerId !== drag.pointer) return;
   if (drag.brush) {
     continueFrost(coordinates(e));
-    paint();
+    requestHoverPaint();
     return;
   }
   const p = coordinates(e),
@@ -870,11 +932,21 @@ function endDrag(e) {
   }
   const wasBrush = drag.brush;
   drag = null;
+  if (e.pointerType === "touch") tool = null;
+  else if (tool) tool.painting = false;
   paint();
   if (wasBrush) panel();
 }
 canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointerleave", () => {
+  if (!drag) {
+    tool = null;
+    requestHoverPaint();
+  }
+});
 canvas.addEventListener("pointercancel", (e) => {
+  tool = null;
+  stopEffect();
   if (drag) {
     state = drag.before;
     drag = null;
@@ -933,16 +1005,12 @@ $("#undo").onclick = () => {
 $("#prev").onclick = () => {
   selectStep(Math.max(0, step - 1));
 };
-function spreadCream(done) {
-  stopEffect();
-  const filled = brushKeys()[1];
-  if (!state[filled]) change(() => (state[filled] = true));
-  play("cream", done);
-}
 $("#next").onclick = () => {
-  const advance = () => (step < 8 ? selectStep(step + 1) : finish());
-  if ([1, 4].includes(step) && !state[brushKeys()[1]]) spreadCream(advance);
-  else advance();
+  if ([1, 4].includes(step) && !state[brushKeys()[1]]) {
+    toast("Spread the cream to 85% to continue.");
+    return;
+  }
+  step < 7 ? selectStep(step + 1) : finish();
 };
 $("#cancelClear").onclick = () => $("#clearConfirm").close();
 $("#confirmClear").onclick = () => {
@@ -1017,6 +1085,7 @@ $("#restart").onclick = askReset;
 $("#cancelReset").onclick = () => $("#confirm").close();
 $("#confirmReset").onclick = () => {
   stopEffect();
+  tool = null;
   state = fresh();
   history = [];
   selected = null;

@@ -16,24 +16,23 @@ The development server listens on port 5173 and accepts an optional `PORT` varia
 ## The baking ritual
 
 1. **Sponge** — Round, Heart, Square, or Flower. Choose Vanilla, Chocolate, Strawberry, Matcha, or mix a custom sponge color. A soft drop introduces the sponge on its pedestal.
-2. **Cream** — Pick one of seven cream bowls, or mix your own color. Tap or drag over the cake to spread a first coat. “Smooth it for me” reveals the remaining cream in a short animation. “Spread & continue” finishes this coat before the filling step.
-3. **Filling** — Add fruit, chocolate, cookies, or macarons. Click to add, or drag a material from its tray to the cake. Filling and outer decorations are stored separately.
+2. **Cream** — Pick a cream bowl or custom color, then hold and sweep across the cake. The spatula follows the pointer (or your finger), and only actual strokes apply cream. Hovering moves the spatula without painting. At 85% coverage, the remaining surface settles into a smooth finish automatically. Picking a bowl starts a fresh coat; there is no instant-fill button.
+3. **Filling** — Add fruit, including green grapes, chocolate, cookies, or macarons. Mint is replaced by green grapes in this tray. Click to add, or drag a material from its tray to the cake. Filling and outer decorations are stored separately.
 4. **Layers** — Keep one layer, or explicitly add a second sponge with a short falling animation. Revisiting a stage never adds a layer or silently finishes the frosting.
-5. **Frost** — Spread a separate outer coat. Each pointer gesture is one undo action; assisted smoothing is also available. The sides gradually take on the cream color as coverage increases.
+5. **Frost** — Hand-spread a separate outer coat with the same spatula control and 85% completion rule. Each gesture, including its automatic finish, is one undo action. The sides gradually take on the cream color as coverage increases.
 6. **Decorate** — All original fruit, sliced fruit, sweets, flowers, bows, pearls, cream piping, and custom lettering remain available. Enter a message of up to 20 characters, or use “Happy Day” / “For You”. Add multiple pieces, drag them, and select them to resize, rotate, or delete. On a keyboard, arrow keys move a selected decoration; Delete / Backspace removes it. Clear requires confirmation and can be undone.
 7. **Plate** — Move from the pedestal to Porcelain, Scalloped, Blush pink, or Glass without losing anything.
-8. **Slice** — Keep whole, or cut 2 / 4 / 6 / 8 portions. A short knife pass reveals silhouette-clipped cut lines.
-9. **Scene** — Choose Cream linen, Pink gingham, Warm wood, or Garden picnic. Finish with a small pull-back, name the cake, and export a 1000 × 900 PNG containing only the artwork. Mobile users can also press and hold the finished image.
+8. **Scene** — Choose Cream linen, Pink gingham, Warm wood, or Garden picnic. Finish with a small pull-back, name the cake, and export a 1000 × 900 PNG containing only the artwork. Mobile users can also press and hold the finished image.
 
-All interface copy, accessible names, prompts, errors, and download messages are English. User-authored messages in older saves are preserved as entered. Mobile materials and step strips scroll horizontally. Animations are short and respect the system's reduced-motion preference.
+All interface copy, accessible names, prompts, errors, and download messages are English. User-authored messages in older saves are preserved as entered. On desktop, the cake is centered on the viewport with a frameless ingredient tray on the left. The canvas background blends into the worktop. On mobile, the cake stays above horizontal material and step strips. Animations are short and respect the system's reduced-motion preference.
 
 Players may jump between stages and revisit earlier choices. Jumping ahead preserves the actual cake rather than implicitly adding layers or cream. Undo retains the last 60 edits in the current session. Start over requires confirmation and clears the recipe and undo history.
 
 ## Autosave and privacy
 
-Every edit is saved locally under `little-dessert-v1`. The current stage, independent cream strokes, single/double-layer choice, fillings, decorations, colors, plating, slicing, scene, and cake name survive refresh. Undo history does not survive refresh. No artwork or personal data is uploaded.
+Every edit is saved locally under `little-dessert-v1`. The current stage, independent cream strokes, single/double-layer choice, fillings, decorations, colors, plating, scene, and cake name survive refresh. Undo history does not survive refresh. No artwork or personal data is uploaded.
 
-V1 / V1.1 saves migrate into the expanded schema while preserving their shapes, colors, messages, and decorations. Invalid recipe data falls back safely; a corrupt JSON save displays an English recovery message. If browser storage is disabled, the game remains playable and PNG export works, with an autosave warning.
+V1 / V1.1 / V2 saves migrate into the expanded schema while preserving their shapes, colors, messages, and decorations. The removed Slice stage migrates to Scene, saved cut lines are cleared, and mint fillings become grapes while keeping their placement. Invalid recipe data falls back safely; a corrupt JSON save displays an English recovery message. If browser storage is disabled, the game remains playable and PNG export works, with an autosave warning.
 
 ## Verify
 
@@ -43,7 +42,7 @@ npm run format:check
 npm run build
 ```
 
-Playwright runs 14 desktop / Pixel 7 browser cases covering the full baking ritual, visible intermediate cream frames, explicit layering, backtracking, native touch and mouse gestures, ingredient placement, resizing, rotation, deletion, confirmed clear/reset, custom lettering and colors, all plates and scenes, cuts, reduced motion, English interface copy, migration, damaged saves, disabled storage, and PNG dimensions and pixel agreement with the final preview.
+Playwright runs 18 desktop / Pixel 7 browser cases covering the full baking ritual, pointer-following spatulas, real partial strokes, independent raster checks of 85% auto-completion, explicit layering, backtracking, native touch and mouse gestures, ingredient placement, resizing, rotation, deletion, confirmed clear/reset, custom lettering and colors, all plates and scenes, the removed Slice stage, green grapes, centered frameless layout, reduced motion, English interface copy, migration, damaged saves, disabled storage, and PNG dimensions and pixel agreement with the final preview.
 
 Layout checks include widths of 320, 375, 768, and 1440 pixels. Reports/screenshots are generated in ignored `test-results/`. Mobile coverage uses Chromium device emulation and native touch events; real iOS / Safari hardware is not yet verified.
 
@@ -75,4 +74,4 @@ For a fresh repository, select **Settings → Pages → Source → GitHub Action
 
 ## Deliberate simplifications
 
-Cream is rendered from clipped vector brush strokes with an assisted reveal and side-color blending; it is not a fluid or mesh simulation. Cutting is a knife animation plus visual seams, without physical slices separating. Fruit is provided already cut; there is no knife-controlled fruit cutting. Ingredient drop shadows and surface foreshortening are stylized 2D. There is no sound, cloud album, account system, or new dessert type. Each surface supports up to 250 decorations to protect mobile performance.
+Cream is rendered from actual clipped pointer strokes, geometric coverage measurement, automatic finishing at 85%, and side-color blending; it is not a fluid or mesh simulation. Cake slicing has been removed. Fruit is provided already cut; there is no knife-controlled fruit cutting. Ingredient drop shadows and surface foreshortening are stylized 2D. There is no sound, cloud album, account system, or new dessert type. Each surface supports up to 250 decorations to protect mobile performance.

@@ -18,6 +18,7 @@ export const toppingNames = {
   mangoCubes: "Mango cubes",
   banana: "Banana slices",
   mint: "Mint leaves",
+  grapes: "Green grapes",
   blueberry: "Blueberry",
   cherry: "Cherries",
   lemon: "Lemon slice",
@@ -258,6 +259,28 @@ function fruitSlice(c, type) {
         ellipse(c, Math.cos(a) * 5, Math.sin(a) * 5, 1, 1.5, "#ae8c50");
       }
       c.restore();
+    }
+    return true;
+  }
+  if (type === "grapes") {
+    c.beginPath();
+    c.moveTo(-9, -17);
+    c.quadraticCurveTo(0, -32, 16, -29);
+    stroke(c, "#8b955e", 2);
+    for (const [x, y, rx, ry] of [
+      [-15, -8, 17, 23],
+      [14, -4, 18, 24],
+      [0, 18, 18, 23],
+    ]) {
+      const g = c.createRadialGradient(x - 6, y - 9, 2, x, y, 26);
+      g.addColorStop(0, "#ecedb9");
+      g.addColorStop(0.35, "#c9db89");
+      g.addColorStop(1, "#8eb555");
+      ellipse(c, x, y, rx, ry, g);
+      ellipse(c, x - 5, y - 8, 4, 8, "#ffffff65");
+      c.beginPath();
+      c.ellipse(x + 1, y, rx - 2, ry - 2, 0.08, -0.2, 1.2);
+      stroke(c, "#78984935", 1);
     }
     return true;
   }
@@ -677,6 +700,35 @@ function backdrop(c, bg) {
   c.fillStyle = light;
   c.fillRect(0, 0, 1000, 900);
 }
+function brushMarks(c, p, strokes, cream) {
+  // Clip vector brush strokes to the current silhouette, including heart/flower edges.
+  c.save();
+  c.clip(p);
+  c.strokeStyle = cream;
+  c.fillStyle = cream;
+  c.lineWidth = 86;
+  c.lineCap = "round";
+  c.lineJoin = "round";
+  for (const points of strokes) {
+    if (!points.length) continue;
+    c.beginPath();
+    c.moveTo(points[0].x, points[0].y);
+    for (const point of points) c.lineTo(point.x, point.y);
+    c.stroke();
+    ellipse(c, points[0].x, points[0].y, 43, 43, cream);
+    c.save();
+    c.strokeStyle = "#fff7e745";
+    c.lineWidth = 3;
+    for (const offset of [-24, 24]) {
+      c.beginPath();
+      c.moveTo(points[0].x, points[0].y + offset);
+      for (const point of points) c.lineTo(point.x, point.y + offset);
+      c.stroke();
+    }
+    c.restore();
+  }
+  c.restore();
+}
 export function render(
   c,
   state,
@@ -687,9 +739,10 @@ export function render(
     presentation = false,
     effect = null,
     coverage = 0,
+    tool = null,
   } = {},
 ) {
-  stage = presentation ? 8 : stage;
+  stage = presentation ? 7 : stage;
   const workbench = !presentation && stage < 6;
   const showFilling = stage === 2 || (stage === 3 && !state.layered);
   const useBase =
@@ -707,7 +760,7 @@ export function render(
   const fillingColor = state.customFilling || creamColors[state.fillingCream];
   const strokes = useBase ? state.baseStrokes : state.frosting;
   const progress = effect?.progress ?? 1;
-  const reveal = effect?.kind === "cream" ? progress : 1;
+  const reveal = effect?.kind === "cream-complete" ? progress : 1;
   const drop =
     effect?.kind === "sponge"
       ? -75 * (1 - progress) ** 3
@@ -716,7 +769,10 @@ export function render(
         : 0;
   c.clearRect(0, 0, 1000, 900);
   const bg = workbench ? 0 : state.background;
-  backdrop(c, bg);
+  if (workbench) {
+    c.fillStyle = "#f6eee0";
+    c.fillRect(0, 0, 1000, 900);
+  } else backdrop(c, bg);
   if (
     effect?.kind === "scene" &&
     effect.previousBackground !== undefined &&
@@ -823,7 +879,11 @@ export function render(
   const depth = state.layered && stage >= 3 ? 145 : 85;
   const base =
     stage >= 4 && state.frosted
-      ? blend(spongeColor, cream, reveal)
+      ? blend(
+          spongeColor,
+          cream,
+          effect?.kind === "cream-complete" ? 0.61 + 0.39 * reveal : 1,
+        )
       : stage === 4
         ? blend(spongeColor, cream, (coverage / 100) * 0.72)
         : spongeColor;
@@ -922,13 +982,15 @@ export function render(
     );
   }
   c.restore();
+  if (
+    stage >= 1 &&
+    strokes?.length &&
+    (!showCream || effect?.kind === "cream-complete")
+  )
+    brushMarks(c, p, strokes, cream);
   if (showCream) {
     c.save();
-    if (reveal < 1) {
-      c.beginPath();
-      c.rect(-330, -220, 660, 440 * reveal);
-      c.clip();
-    }
+    if (effect?.kind === "cream-complete") c.globalAlpha *= reveal;
     c.save();
     c.shadowColor = "#9c6c4840";
     c.shadowBlur = 8;
@@ -977,60 +1039,6 @@ export function render(
     }
     c.restore();
     c.restore();
-  } else if (stage >= 1 && strokes?.length) {
-    // Clip vector brush strokes to the current silhouette, including heart/flower edges.
-    c.save();
-    c.clip(p);
-    c.strokeStyle = cream;
-    c.fillStyle = cream;
-    c.lineWidth = 86;
-    c.lineCap = "round";
-    c.lineJoin = "round";
-    for (const points of strokes) {
-      if (!points.length) continue;
-      c.beginPath();
-      c.moveTo(points[0].x, points[0].y);
-      for (const point of points) c.lineTo(point.x, point.y);
-      c.stroke();
-      ellipse(c, points[0].x, points[0].y, 43, 43, cream);
-      c.save();
-      c.strokeStyle = "#fff7e745";
-      c.lineWidth = 3;
-      for (const offset of [-24, 24]) {
-        c.beginPath();
-        c.moveTo(points[0].x, points[0].y + offset);
-        for (const point of points) c.lineTo(point.x, point.y + offset);
-        c.stroke();
-      }
-      c.restore();
-    }
-    c.restore();
-  }
-  if (state.slices && stage >= 5) {
-    c.save();
-    c.clip(p);
-    c.strokeStyle = "#89604e55";
-    c.lineWidth = 3;
-    c.setLineDash([4, 5]);
-    for (let i = 0; i < state.slices; i++) {
-      const cut =
-        effect?.kind === "slice"
-          ? Math.min(1, Math.max(0, progress * state.slices - i))
-          : 1;
-      if (!cut) continue;
-      const a = -Math.PI / 2 + (i * Math.PI * 2) / state.slices;
-      c.beginPath();
-      c.moveTo(0, 0);
-      c.lineTo(Math.cos(a) * 500 * cut, Math.sin(a) * 500 * cut);
-      c.stroke();
-    }
-    c.restore();
-    if (effect?.kind === "slice" && state.slices) {
-      const a =
-        -Math.PI / 2 +
-        (Math.floor(progress * state.slices) * Math.PI * 2) / state.slices;
-      spatula(c, Math.cos(a) * 140, Math.sin(a) * 100, -a + Math.PI / 2, 0.7);
-    }
   }
   c.restore();
   const visibleToppings = showFilling
@@ -1076,7 +1084,17 @@ export function render(
   if (workbench && [1, 4].includes(stage)) {
     const travel = effect?.kind === "tools" ? 100 * (1 - progress) ** 3 : 0;
     drawBowl(c, 210 - travel, 735, cream, 0.85);
-    spatula(c, 796 + travel, 700, -0.6, 0.9);
+    if (tool) {
+      const a = tool.angle || -0.55,
+        scale = 0.82;
+      spatula(
+        c,
+        500 + tool.x - 34 * scale * Math.sin(a),
+        402 + tool.y + 34 * scale * Math.cos(a),
+        a,
+        scale,
+      );
+    } else spatula(c, 796 + travel, 700, -0.6, 0.9);
   }
   if (!workbench) {
     // Botanical sprig to frame the composition without using external assets.

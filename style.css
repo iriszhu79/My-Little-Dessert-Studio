@@ -916,3 +916,363 @@ dialog button {
 .toppings .option {
   font-size: 10px;
 }
+/* An open worktop: the pedestal stays on the page centerline, materials sit to its left. */
+:root {
+  background: #f6eee0;
+}
+body {
+  background: #f6eee0;
+}
+header {
+  border-bottom: 0;
+  max-width: none;
+  padding-left: 4%;
+  padding-right: 4%;
+}
+.intro {
+  margin-bottom: 5px;
+}
+.intro h1 {
+  font-size: 20px;
+}
+.intro .eyebrow {
+  font-size: 8px;
+}
+.workspace {
+  display: block;
+  position: relative;
+  min-height: 740px;
+}
+.art-area {
+  width: min(75vw, 880px);
+  margin: 0 auto;
+}
+.art-heading {
+  height: 0;
+  margin: 0;
+  visibility: hidden;
+}
+.canvas-wrap {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+}
+.canvas-label {
+  display: none;
+}
+aside {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  width: clamp(220px, 20vw, 275px);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+#panel {
+  min-height: 240px;
+}
+#panel h2 {
+  font-size: 25px;
+}
+.panel-title {
+  font-size: 13px;
+  color: #a17561;
+}
+nav {
+  border: 0;
+  margin: 10px 0 19px;
+  gap: 13px;
+}
+nav button {
+  font-size: 9px;
+  min-height: 34px;
+}
+.options {
+  gap: 6px;
+}
+.option,
+.option.active {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.option {
+  padding: 10px 4px;
+  min-height: 89px;
+  font-size: 10px;
+}
+.option.active > span {
+  text-decoration: underline;
+  text-underline-offset: 6px;
+  text-decoration-color: #b87c72;
+}
+.option:hover {
+  background: #fff9ef55;
+}
+.option svg {
+  height: 38px;
+  margin-bottom: 10px;
+}
+.toppings .option {
+  min-height: 86px;
+  font-size: 9px;
+}
+.option canvas {
+  width: 54px;
+  height: 54px;
+}
+.cream-bowls {
+  gap: 4px;
+}
+.cream-bowls .option {
+  min-height: 82px;
+  font-size: 9px;
+  padding: 7px 1px;
+}
+.cream-bowls .option canvas {
+  width: 58px;
+  height: 46px;
+}
+.panel-bottom {
+  border: 0;
+  padding-top: 12px;
+  margin-top: 16px;
+}
+.panel-bottom button {
+  padding: 10px 12px;
+  font-size: 10px;
+}
+.art-footer {
+  margin-top: 0;
+}
+.art-footer > span {
+  max-width: 65%;
+}
+.selection-tools {
+  margin-top: 10px;
+}
+.frosting-mode {
+  cursor: none;
+}
+.brush-tip {
+  border: 0;
+  padding: 8px 0;
+  background: transparent;
+  font-size: 10px;
+  color: #9c8067;
+}
+.frost-meter {
+  margin: 14px 0;
+}
+.field-label {
+  font-size: 9px;
+}
+.color-picker {
+  font-size: 10px;
+  margin: 12px 0;
+}
+.release-note {
+  font-size: 9px;
+}
+.topping-categories {
+  gap: 5px;
+}
+.topping-categories button {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  border-bottom: 1px solid transparent;
+  padding: 7px 4px;
+}
+.topping-categories button.active {
+  background: transparent;
+  color: #ad7066;
+  border-bottom-color: #ad7066;
+}
+.layer-illustration {
+  max-width: 190px;
+  padding: 12px;
+}
+.layer-options {
+  flex-direction: column;
+  gap: 4px;
+}
+.layer-options .option {
+  min-height: 44px;
+}
+.stage-note {
+  font-size: 10px !important;
+}
+.header-note {
+  font-size: 13px;
+}
+footer {
+  margin-top: 15px;
+}
+@media (min-width: 901px) {
+  main {
+    max-width: none;
+    padding-top: 12px;
+  }
+  .art-area .art-footer {
+    padding: 0 2%;
+  }
+  #finish {
+    position: relative;
+    z-index: 1;
+  }
+  aside {
+    z-index: 2;
+  }
+  #saved {
+    font-size: 9px;
+  }
+}
+@media (max-width: 1100px) and (min-width: 901px) {
+  aside {
+    width: 220px;
+  }
+  .header-note {
+    display: none;
+  }
+  .art-area {
+    width: 74vw;
+  }
+  #panel h2 {
+    font-size: 22px;
+  }
+  .cream-bowls .option canvas {
+    width: 50px;
+    height: 42px;
+  }
+}
+@media (max-width: 900px) {
+  header {
+    height: 72px;
+  }
+  .intro {
+    margin-bottom: 14px;
+  }
+  .intro h1 {
+    font-size: 21px;
+  }
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: 17px;
+  }
+  .art-area {
+    width: 100%;
+    margin: 0;
+  }
+  .canvas-wrap {
+    max-width: 460px;
+    margin: auto;
+  }
+  .art-heading {
+    height: auto;
+    visibility: visible;
+    margin-bottom: 4px;
+    font-size: 8px;
+  }
+  .art-footer {
+    margin-top: 6px;
+  }
+  aside {
+    position: static;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    padding: 0 2%;
+  }
+  #panel {
+    min-height: 180px;
+  }
+  .panel-title {
+    font-size: 14px;
+  }
+  nav {
+    margin: 8px 0 15px;
+    gap: 15px;
+  }
+  nav button {
+    font-size: 11px;
+    min-height: 40px;
+  }
+  .options,
+  .cream-bowls {
+    display: flex;
+    overflow-x: auto;
+    padding: 4px 0 10px;
+  }
+  .options .option {
+    flex: 0 0 105px;
+  }
+  .options.toppings .option {
+    flex-basis: 84px;
+    min-height: 94px;
+  }
+  .cream-bowls .option {
+    flex: 0 0 83px;
+    font-size: 10px;
+  }
+  .panel-bottom {
+    margin-top: 13px;
+    padding-top: 5px;
+  }
+  .panel-bottom button {
+    font-size: 11px;
+    min-height: 44px;
+    padding: 11px 17px;
+  }
+  .brush-tip {
+    font-size: 11px;
+    padding: 6px 0;
+  }
+  .layer-options {
+    flex-direction: row;
+  }
+  .layer-options .option {
+    flex: 1;
+    min-height: 65px;
+  }
+  .layer-illustration {
+    margin: 10px auto 15px;
+  }
+  .field-label {
+    font-size: 10px;
+  }
+  .color-picker {
+    font-size: 11px;
+  }
+  .topping-categories button {
+    font-size: 11px;
+    min-height: 38px;
+  }
+  .release-note {
+    display: none;
+  }
+  #showMaking {
+    display: none;
+  }
+  .header-note {
+    display: none;
+  }
+  .header-actions button {
+    font-size: 10px;
+    padding: 9px 12px;
+  }
+  #saved {
+    display: none;
+  }
+}
