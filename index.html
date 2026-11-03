@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="theme-color" content="#fbf7ef" />
+    <meta name="theme-color" content="#f6eee0" />
     <title>My Little Dessert Studio</title>
     <link rel="stylesheet" href="style.css" />
   </head>
@@ -12,47 +12,37 @@
       <a class="brand" href="./" aria-label="My Little Dessert Studio home"
         ><span class="brand-icon" aria-hidden="true">♧</span
         ><span>My Little<br /><b>Dessert Studio</b></span></a
-      ><span class="header-note">a little baking, a little daydreaming</span>
+      ><span class="header-note"
+        >a little baking, a little daydreaming <small>v2.2</small></span
+      >
       <div class="header-actions">
         <span id="saved" role="status">Saved on this device</span
-        ><button id="undo" class="subtle" aria-label="Undo">
-          ↶ <span>Undo</span></button
-        ><button id="reset" class="subtle">Start over</button>
+        ><button id="undo" class="subtle" aria-label="Undo">↶ Undo</button>
       </div>
     </header>
     <main>
-      <section class="intro">
-        <div>
-          <div class="eyebrow">YOUR LITTLE BAKING RITUAL</div>
-          <h1>A little cake, made by you.</h1>
-        </div>
-        <span class="release-note">The hands-on edition · v2.1</span
-        ><button id="showMaking" class="subtle">Back to the sponge</button>
-      </section>
       <div class="workspace">
-        <section class="art-area">
-          <div class="art-heading">
-            <span id="workMode">THE CAKE STAND</span
-            ><span class="tiny">TAKE YOUR TIME ♡</span>
+        <aside aria-label="Ingredients">
+          <div class="panel-title">
+            <span id="phaseTitle">Sponge</span
+            ><span id="stepCount">01 / 08</span>
           </div>
+          <div id="panel"></div>
+        </aside>
+        <section class="art-area" aria-label="Cake studio">
+          <span id="workMode" class="sr-only">THE CAKE STAND</span>
           <div class="canvas-wrap">
             <canvas
               id="cake"
               width="1000"
               height="900"
-              aria-label="Your cake. Hold and drag the spatula to spread cream. At 85% the coat finishes automatically; select decorations to move them. Arrow keys move a selected decoration. Delete removes it."
+              aria-label="Your cake. Hold and drag the spatula to spread cream. At 85% the coat finishes and the next stage begins. Select decorations to move them. Arrow keys move a selected decoration. Delete removes it."
               tabindex="0"
-            ></canvas
-            ><span class="canvas-label">a little sweetness, made by you</span>
-            <div id="sceneCaption" aria-live="polite"></div>
+            ></canvas>
           </div>
-          <div class="art-footer">
-            <span
-              >✧ <span id="hint">Start with a soft little sponge.</span></span
-            ><button id="finish">
-              Finish cake <span aria-hidden="true">→</span>
-            </button>
-          </div>
+          <span id="hint" class="work-hint" aria-live="polite"
+            >Start with a soft little sponge.</span
+          >
           <div class="selection-tools" id="selectionTools" hidden>
             <span>Your little detail</span
             ><button id="smaller" aria-label="Make smaller">−</button
@@ -61,24 +51,13 @@
             ><button id="delete">Delete</button>
           </div>
         </section>
-        <aside>
-          <div class="panel-title">
-            <span id="phaseTitle">The ingredients</span
-            ><span id="stepCount">01 / 08</span>
-          </div>
-          <nav id="steps" aria-label="Baking steps"></nav>
-          <div id="panel"></div>
-          <div class="panel-bottom">
-            <button id="prev" class="subtle">← Back</button
-            ><button id="next">Next →</button>
-          </div>
-        </aside>
       </div>
-      <footer>
-        <span>Nothing to rush. Something to savor.</span
-        ><span>MADE WITH A LITTLE MAGIC</span>
-      </footer>
     </main>
+    <footer id="studioActions" aria-label="Studio actions">
+      <button id="prev" class="subtle">← Back</button
+      ><button id="reset" class="subtle">Start over</button
+      ><button id="finish">Finish cake →</button>
+    </footer>
     <dialog id="welcome">
       <canvas
         id="welcomeCake"

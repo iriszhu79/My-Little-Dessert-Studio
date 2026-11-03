@@ -45,6 +45,7 @@ let state = fresh(),
   presentation = false,
   effect = null,
   effectFrame = null,
+  effectTimer = null,
   restoreNotice = "",
   tool = null,
   hoverFrame = null,
@@ -174,6 +175,8 @@ function brushKeys() {
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 function stopEffect() {
   if (effectFrame) cancelAnimationFrame(effectFrame);
+  if (effectTimer) clearTimeout(effectTimer);
+  effectTimer = null;
   effectFrame = null;
   effect = null;
   $(".workspace").removeAttribute("aria-busy");
@@ -194,21 +197,29 @@ function play(kind, done, id, previousBackground) {
             ? 320
             : 420,
     start = performance.now();
-  effect = { kind, progress: 0, id, previousBackground };
+  const target = { kind, progress: 0, id, previousBackground };
+  effect = target;
   $(".workspace").setAttribute("aria-busy", "true");
-  function frame(now) {
-    effect.progress = Math.min(1, (now - start) / duration);
+  function complete() {
+    if (effect !== target) return;
+    target.progress = 1;
     paint();
-    if (effect.progress < 1) {
-      effectFrame = requestAnimationFrame(frame);
-    } else {
-      stopEffect();
-      paint();
-      done?.();
-    }
+    stopEffect();
+    paint();
+    done?.();
+  }
+  function frame() {
+    if (effect !== target) return;
+    target.progress = Math.min(1, (performance.now() - start) / duration);
+    paint();
+    if (target.progress < 1) effectFrame = requestAnimationFrame(frame);
+    else complete();
   }
   effectFrame = requestAnimationFrame(frame);
+  // Rendering can be throttled in background tabs; workflow completion must not depend on RAF alone.
+  effectTimer = setTimeout(complete, duration + 100);
 }
+
 function activeToppings() {
   return step === 2 ? state.fillingToppings : state.toppings;
 }
@@ -249,16 +260,9 @@ function paint() {
     progress.value = coverage;
     $("#frostPercent").textContent = Math.round(progress.value) + "%";
   }
-  $("#next").disabled = [1, 4].includes(step) && !state[brushKeys()[1]];
-  $("#next").textContent =
-    step === 7
-      ? "Finish cake ♡"
-      : $("#next").disabled
-        ? "Spread to 85%"
-        : "Next →";
   $("#hint").textContent = [1, 4].includes(step)
     ? state[brushKeys()[1]]
-      ? "A lovely smooth finish. Choose a bowl to recoat, or continue."
+      ? "A lovely smooth finish. Ready for the next little step."
       : "Hold and sweep with your spatula. At 85%, we will finish the last little bit."
     : $("#hint").textContent;
   $("#undo").disabled = !history.length;
@@ -310,6 +314,7 @@ const descriptions = [
   "Choose a cozy setting for your final photograph.",
 ];
 function selectStep(next) {
+  commitGesture();
   const previousBackground = step < 6 ? 0 : state.background;
   stopEffect();
   tool = null;
@@ -479,32 +484,8 @@ function material(type) {
   return b;
 }
 function panel() {
-  const nav = $("#steps");
-  nav.replaceChildren();
-  stepNames.forEach((name, i) => {
-    const b = document.createElement("button");
-    b.textContent = name;
-    b.className = i === step ? "active" : "";
-    b.setAttribute("aria-current", i === step ? "step" : "false");
-    b.onclick = () => selectStep(i);
-    nav.append(b);
-  });
-  const active = nav.querySelector(".active");
-  nav.scrollLeft +=
-    active.getBoundingClientRect().left -
-    nav.getBoundingClientRect().left -
-    (nav.clientWidth - active.clientWidth) / 2;
   $("#stepCount").textContent = `0${step + 1} / 08`;
-  $("#phaseTitle").textContent = [
-    "The soft beginning",
-    "A bowl of something lovely",
-    "The little extras",
-    "A little more sponge",
-    "The finishing touch",
-    "The treat tray",
-    "Ready to plate",
-    "A moment to keep",
-  ][step];
+  $("#phaseTitle").textContent = stepNames[step];
   const p = $("#panel");
   p.replaceChildren();
   const title = document.createElement("h2");
@@ -545,39 +526,15 @@ function panel() {
     const meter = document.createElement("div");
     meter.className = "frost-meter";
     meter.innerHTML =
-      '<span>Cream coverage <b id="frostPercent"></b></span><progress id="frostProgress" max="100" aria-label="Cream coverage"></progress>';
+      '<span>Cream coverage <b id="frostPercent"></b></span><progress id="frostProgress" class="sr-only" max="100" aria-label="Cream coverage"></progress>';
     p.append(meter);
     const tip = document.createElement("div");
     tip.className = "brush-tip";
     tip.textContent =
       "Hold and drag your spatula. Reach 85% coverage and the final swirls will settle automatically.";
     p.append(tip);
-    const reset = document.createElement("button");
-    reset.className = "subtle clear";
-    reset.textContent = "Try frosting again";
-    reset.onclick = () => {
-      stopEffect();
-      change(() => {
-        const [strokes, filled] = brushKeys();
-        state[filled] = false;
-        state[strokes] = [];
-      });
-    };
-    p.append(reset);
-  }
-  if (step === 2) {
-    const label = document.createElement("div");
-    label.className = "field-label";
-    label.textContent = "FILLING CREAM";
-    p.append(label);
-    colorPicker(p, "fillingCream", "Filling cream", creamColors, creamNames);
   }
   if (step === 3) {
-    const illustration = document.createElement("div");
-    illustration.className = "layer-illustration";
-    illustration.innerHTML =
-      "<span>Soft sponge</span><span>Fruit & cream</span><span>Soft sponge</span>";
-    p.append(illustration);
     const row = document.createElement("div");
     row.className = "layer-options";
     row.append(
@@ -586,18 +543,18 @@ function panel() {
           state.layered = false;
           state.layersChosen = true;
         });
-        play("sponge");
+        play("sponge", () => selectStep(4));
       }),
       button("Add a second layer", state.layered, () => {
         if (state.layered) {
-          toast("Your second layer is already in place.");
+          selectStep(4);
           return;
         }
         change(() => {
           state.layered = true;
           state.layersChosen = true;
         });
-        play("layer");
+        play("layer", () => selectStep(4));
       }),
     );
     p.append(row);
@@ -679,7 +636,7 @@ function panel() {
           state.plate === i,
           () => {
             change(() => (state.plate = i));
-            play("scene");
+            play("scene", () => selectStep(7));
           },
           `<svg viewBox="0 0 80 55"><ellipse cx="40" cy="29" rx="34" ry="21" fill="${["#fffaf0", "#fff8e5", "#e7b8c0", "#deece7"][i]}" stroke="#d3bd9f"/><ellipse cx="40" cy="29" rx="27" ry="15" fill="none" stroke="#d3bd9f"/></svg>`,
         ),
@@ -695,7 +652,7 @@ function panel() {
             () => {
               const previousBackground = state.background;
               change(() => (state.background = i));
-              play("scene", undefined, undefined, previousBackground);
+              play("scene", finish, undefined, previousBackground);
             },
             `<svg viewBox="0 0 80 55"><rect x="8" y="4" width="64" height="45" rx="5" fill="${["#f0e5d3", "#edc9ca", "#c49b74", "#dae1c6"][i]}"/>${i === 1 || i === 3 ? '<path d="M20 4V49M40 4V49M60 4V49M8 17H72M8 34H72" stroke="#ffffff70" stroke-width="7"/>' : i === 2 ? '<path d="M8 16H72M8 31H72M8 44H72" stroke="#8c63423d"/>' : ""}</svg>`,
           ),
@@ -710,8 +667,30 @@ function panel() {
     b.onclick = () => $("#clearConfirm").showModal();
     p.append(b);
   }
+  const completions = {
+    0: ["Place this sponge", () => play("sponge", () => selectStep(1))],
+    2: [
+      state.fillingToppings.length ? "Finish filling" : "Keep it simple",
+      () => selectStep(3),
+    ],
+    5: ["Ready to plate", () => selectStep(6)],
+  };
+  if ([1, 4].includes(step) && state[brushKeys()[1]])
+    completions[step] = ["Keep this coat", () => selectStep(step + 1)];
+  if (completions[step]) {
+    const [label, action] = completions[step],
+      done = document.createElement("button");
+    done.id = "completeStage";
+    done.className = "complete-stage";
+    done.textContent = label;
+    done.onclick = () => {
+      if (drag) commitGesture();
+      stopEffect();
+      action();
+    };
+    p.append(done);
+  }
   $("#prev").disabled = step === 0;
-  $("#next").textContent = step === 7 ? "Finish cake ♡" : "Next →";
   $("#hint").textContent = [1, 4].includes(step)
     ? "Tap or sweep across the cake to spread cream"
     : step === 2 || step === 5
@@ -795,13 +774,33 @@ function frostCoverage() {
   });
   return m.samples.length ? (m.count / m.samples.length) * 100 : 0;
 }
+function commitGesture() {
+  if (!drag) return;
+  const current = drag;
+  if (current.moved) {
+    history.push(current.before);
+    if (history.length > 60) history.shift();
+    save();
+  }
+  drag = null;
+  if (tool) tool.painting = false;
+  try {
+    if (canvas.hasPointerCapture(current.pointer))
+      canvas.releasePointerCapture(current.pointer);
+  } catch {}
+}
 function maybeCompleteFrost() {
+  if (![1, 4].includes(step)) return;
   const filled = brushKeys()[1];
   if (!state[filled] && frostCoverage() >= 85) {
     state[filled] = true;
+    const completedStage = step;
     play("cream-complete", () => {
-      panel();
-      toast("Beautifully smooth. Your coat is ready.");
+      commitGesture();
+      if (step === completedStage) {
+        selectStep(completedStage + 1);
+        toast("Beautifully smooth. On to the next little step.");
+      }
     });
   }
 }
@@ -839,11 +838,13 @@ function startFrost(e, pos) {
   state[brushKeys()[0]].push([pos]);
   moveTool(pos, true);
   maybeCompleteFrost();
-  canvas.setPointerCapture(e.pointerId);
+  if (drag?.pointer === e.pointerId) canvas.setPointerCapture(e.pointerId);
   paint();
 }
 function continueFrost(pos) {
-  if (state[brushKeys()[1]]) return;
+  const paintingStage = step,
+    filled = brushKeys()[1];
+  if (state[filled]) return;
   const points = state[brushKeys()[0]].at(-1),
     last = points.at(-1);
   if (points.length >= 1700) return;
@@ -858,10 +859,10 @@ function continueFrost(pos) {
     if (ctx.isPointInPath(cakePath(state.shape), p.x, p.y)) {
       points.push(p);
       maybeCompleteFrost();
-      if (state[brushKeys()[1]]) break;
+      if (step !== paintingStage || !drag?.brush || state[filled]) break;
     }
   }
-  maybeCompleteFrost();
+  if (step === paintingStage) maybeCompleteFrost();
 }
 function coordinates(e) {
   const r = canvas.getBoundingClientRect();
@@ -871,7 +872,8 @@ function coordinates(e) {
   };
 }
 canvas.addEventListener("pointerdown", (e) => {
-  if (e.button !== 0 || presentation) return;
+  if (e.button !== 0 || presentation || effect?.kind === "cream-complete")
+    return;
   stopEffect();
   const pos = coordinates(e);
   if ([1, 4].includes(step)) moveTool(pos);
@@ -925,13 +927,8 @@ canvas.addEventListener("pointermove", (e) => {
 });
 function endDrag(e) {
   if (!drag || drag.pointer !== e.pointerId) return;
-  if (drag.moved) {
-    history.push(drag.before);
-    if (history.length > 60) history.shift();
-    save();
-  }
   const wasBrush = drag.brush;
-  drag = null;
+  commitGesture();
   if (e.pointerType === "touch") tool = null;
   else if (tool) tool.painting = false;
   paint();
@@ -996,6 +993,7 @@ $("#undo").onclick = () => {
   presentation = false;
   if (history.length) {
     state = history.pop();
+    step = state.stage;
     selected = null;
     save();
     paint();
@@ -1004,13 +1002,6 @@ $("#undo").onclick = () => {
 };
 $("#prev").onclick = () => {
   selectStep(Math.max(0, step - 1));
-};
-$("#next").onclick = () => {
-  if ([1, 4].includes(step) && !state[brushKeys()[1]]) {
-    toast("Spread the cream to 85% to continue.");
-    return;
-  }
-  step < 7 ? selectStep(step + 1) : finish();
 };
 $("#cancelClear").onclick = () => $("#clearConfirm").close();
 $("#confirmClear").onclick = () => {
@@ -1101,7 +1092,7 @@ $("#confirmReset").onclick = () => {
   panel();
   toast("A fresh sponge, a fresh little beginning.");
 };
-$("#showMaking").onclick = () => selectStep(0);
+
 $("#begin").onclick = () => {
   $("#welcome").close();
   save();
@@ -1114,6 +1105,12 @@ $("#cakeName").oninput = () => {
   paint();
   $("#resultImage").src = artwork().toDataURL("image/png");
 };
+const fitCanvas = new ResizeObserver(([entry]) => {
+  const { width, height } = entry.contentRect;
+  $(".canvas-wrap").style.width =
+    Math.max(1, Math.min(width, (height * 1000) / 900)) + "px";
+});
+fitCanvas.observe($(".art-area"));
 const welcomeState = {
   ...fresh(),
   baseCream: true,
