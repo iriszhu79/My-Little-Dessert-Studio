@@ -667,6 +667,10 @@ function panel() {
         ),
     );
   if (step !== 0) p.append(grid);
+  if (step === 6) {
+    const active = grid.querySelector(".active");
+    if (active) grid.scrollLeft = active.offsetLeft - grid.offsetLeft;
+  }
   if (step === 2 || step === 5) {
     const b = document.createElement("button");
     b.className = "subtle clear";
