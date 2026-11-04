@@ -29,6 +29,18 @@ jobs:
           node-version: "24"
       - name: Prepare fingerprinted public files
         run: node scripts/build-site.js
+      # Keep the public game built from main; the reviewed study has its own URL.
+      - name: Check out the isolated painted vanilla study
+        uses: actions/checkout@v4
+        with:
+          ref: 591ac919d6c1ab8b8c5dc615f4c239835b10a142
+          path: .preview-source
+          persist-credentials: false
+      - name: Build the study below its own preview path
+        working-directory: .preview-source
+        env:
+          SITE_OUTPUT: ${{ github.workspace }}/dist/preview/painted-vanilla
+        run: node scripts/build-site.js
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload website
