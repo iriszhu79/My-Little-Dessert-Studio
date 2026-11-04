@@ -129,7 +129,8 @@ async function stage(p, target, mobile) {
   for (let guard = 0; guard < 20; guard++) {
     const i = await current(p);
     if (i === n) return;
-    if (i > n) {
+    const order = [0, 3, 1, 2, 4, 5, 6, 7];
+    if (order.indexOf(i) > order.indexOf(n)) {
       await p.locator("#prev").click();
       await settled(p);
       continue;
@@ -142,7 +143,7 @@ async function stage(p, target, mobile) {
         await p.locator("#completeStage").click();
         await settled(p);
       } else await coat(p, mobile);
-    } else if (i === 3) await click(p, "Keep one layer");
+    } else if (i === 3) await click(p, "Add a second layer");
     else if (i === 6) await click(p, "Set the scene");
   }
   throw Error("Could not reach " + target);
@@ -170,6 +171,8 @@ test("guided baking preserves shapes, colors, lettering, plate and named PNG wit
   await page.getByLabel("Custom sponge color").fill("#bbc781");
   expect((await saved(page)).customCake).toBe("#bbc781");
   await click(page, "Place this sponge");
+  await expect(page.locator("#phaseTitle")).toHaveText("Layers");
+  await click(page, "Add a second layer");
   await expect(page.locator("#phaseTitle")).toHaveText("Cream");
   await click(page, "Strawberry");
   await partial(page, mobile);
@@ -183,8 +186,7 @@ test("guided baking preserves shapes, colors, lettering, plate and named PNG wit
   await click(page, "Chocolate");
   const filling = (await saved(page)).fillingToppings;
   expect(filling).toHaveLength(3);
-  await click(page, "Finish filling");
-  await click(page, "Add a second layer");
+  await click(page, "Cover with the second layer →");
   await expect(page.locator("#phaseTitle")).toHaveText("Frost");
   await click(page, "Vanilla");
   await coat(page, mobile);
@@ -444,8 +446,7 @@ test("ingredients and decorations still support dragging, transforms, deletion, 
   await expect(button(page, "Mint leaves")).toHaveCount(0);
   await click(page, "Green grapes");
   expect((await saved(page)).fillingToppings[0].type).toBe("grapes");
-  await click(page, "Finish filling");
-  await click(page, "Keep one layer");
+  await click(page, "Cover with the second layer →");
   await coat(page, mobile);
   await click(page, "Strawberry");
   const b = await page.locator("#cake").boundingBox(),
@@ -500,23 +501,20 @@ test("Back edits an earlier recipe without duplicating layers or dropping fillin
   await stage(page, "Filling", mobile);
   await click(page, "Strawberry half");
   const filling = (await saved(page)).fillingToppings;
-  await click(page, "Finish filling");
-  await click(page, "Add a second layer");
+  await click(page, "Cover with the second layer →");
   await expect(page.locator("#phaseTitle")).toHaveText("Frost");
-  expect((await saved(page)).layered).toBe(true);
-  await page.locator("#prev").click();
-  await settled(page);
-  await click(page, "Add a second layer");
-  expect((await saved(page)).fillingToppings).toEqual(filling);
-  await page.locator("#prev").click();
-  await settled(page);
+  await stage(page, "Layers", mobile);
   await click(page, "Keep one layer");
+  await expect(page.locator("#phaseTitle")).toHaveText("Frost");
   expect((await saved(page)).layered).toBe(false);
-  await page.locator("#prev").click();
-  await settled(page);
-  await page.locator("#prev").click();
-  await settled(page);
+  await click(page, "← Back");
+  await expect(page.locator("#phaseTitle")).toHaveText("Layers");
+  await click(page, "Add a second layer");
+  await click(page, "Keep this coat");
   await expect(page.locator("#phaseTitle")).toHaveText("Filling");
+  expect((await saved(page)).fillingToppings).toEqual(filling);
+  await click(page, "Cover with the second layer →");
+  expect((await saved(page)).layered).toBe(true);
   expect((await saved(page)).fillingToppings).toEqual(filling);
 });
 
@@ -639,12 +637,14 @@ test("reduced motion and disabled storage still allow guided coating and a PNG d
   await start(page);
   await expect(page.locator("#saved")).toHaveText("Autosave unavailable");
   await click(page, "Place this sponge");
+  await click(page, "Add a second layer");
   await coat(page, info.project.name === "mobile");
   await expect(page.locator("#phaseTitle")).toHaveText("Filling");
   await expect(page.locator(".workspace")).not.toHaveAttribute(
     "aria-busy",
     "true",
   );
+  await stage(page, "Decorate", info.project.name === "mobile");
   await page.locator("#finish").click();
   await expect(page.locator("#result")).toBeVisible();
   const promise = page.waitForEvent("download");
@@ -665,7 +665,7 @@ test("stage transitions recover from throttled animation frames without firing o
     };
     document.querySelector("#completeStage").click();
   });
-  await expect(page.locator("#phaseTitle")).toHaveText("Cream");
+  await expect(page.locator("#phaseTitle")).toHaveText("Layers");
   await settled(page);
   await page.evaluate(() => {
     window.requestAnimationFrame = window.testNativeRAF;
@@ -673,8 +673,8 @@ test("stage transitions recover from throttled animation frames without firing o
     delete window.testNativeRAF;
     delete window.testStalledFrames;
   });
-  await expect(page.locator("#phaseTitle")).toHaveText("Cream");
-  expect((await saved(page)).stage).toBe(1);
+  await expect(page.locator("#phaseTitle")).toHaveText("Layers");
+  expect((await saved(page)).stage).toBe(3);
 });
 
 test("six original plates preserve the recipe, restore and export on all four shapes", async ({
@@ -785,5 +785,235 @@ test("legacy pink plates migrate without losing decorations", async ({
     "true",
   );
   await click(page, "Blue Ribbon");
-  expect((await saved(page)).schemaVersion).toBe(4);
+  expect((await saved(page)).schemaVersion).toBe(5);
+});
+
+test("single-layer route skips hidden filling and reserves finishing for decoration", async ({
+  page,
+}, info) => {
+  test.setTimeout(60000);
+  await start(page);
+  await expect(page.locator("#finish")).toBeDisabled();
+  await click(page, "Place this sponge");
+  await expect(page.locator("#phaseTitle")).toHaveText("Layers");
+  await click(page, "Keep one layer");
+  await expect(page.locator("#phaseTitle")).toHaveText("Frost");
+  await coat(page, info.project.name === "mobile");
+  await click(page, "Strawberry");
+  expect((await saved(page)).fillingToppings).toEqual([]);
+  await page.locator("#finish").click();
+  await settled(page);
+  await click(page, "Peek inside");
+  await expect(page.locator("#cutNote")).toContainText("One soft sponge");
+  await expect(page.locator("#resultImage")).toBeVisible();
+  await click(page, "Keep editing");
+  await click(page, "← Back");
+  await expect(page.locator("#phaseTitle")).toHaveText("Frost");
+  await click(page, "← Back");
+  await expect(page.locator("#phaseTitle")).toHaveText("Layers");
+});
+
+test("slice previews follow real fillings, rotate, preserve the recipe, restore and export", async ({
+  page,
+}, info) => {
+  test.setTimeout(60000);
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await start(page);
+  const seed = await saved(page);
+  const filling = [
+    {
+      id: "near",
+      type: "strawberryHalf",
+      x: 100,
+      y: 32,
+      scale: 1.2,
+      rotation: 0.3,
+      text: "",
+    },
+    {
+      id: "far",
+      type: "blueberry",
+      x: -160,
+      y: -80,
+      scale: 0.8,
+      rotation: 0,
+      text: "",
+    },
+  ];
+  const toppings = [
+    {
+      id: "fruit",
+      type: "strawberry",
+      x: 100,
+      y: 40,
+      scale: 1.1,
+      rotation: 0.1,
+      text: "",
+    },
+    {
+      id: "message",
+      type: "text",
+      x: 0,
+      y: 0,
+      scale: 1,
+      rotation: 0,
+      text: "For You",
+    },
+  ];
+  await page.evaluate(
+    (s) => localStorage.setItem("little-dessert-v1", JSON.stringify(s)),
+    {
+      ...seed,
+      stage: 7,
+      layered: true,
+      frosted: true,
+      baseCream: true,
+      fillingToppings: filling,
+      toppings,
+      plate: 5,
+      fillingCream: 1,
+      name: "A sweet surprise",
+    },
+  );
+  await page.reload();
+  await expect(page.locator("#phaseTitle")).toHaveText("Scene");
+  await page.locator("#finish").click();
+  await settled(page);
+  const whole = await page.locator("#resultImage").getAttribute("src");
+  await click(page, "Peek inside");
+  await expect(page.locator("#cutNote")).toContainText("Strawberry half");
+  await expect(page.locator("#cutNote")).not.toContainText("Blueberry");
+  const cuts = new Set([
+    await page.locator("#resultImage").getAttribute("src"),
+  ]);
+  await page.screenshot({ path: info.outputPath("slice-view.png") });
+  for (let i = 0; i < 2; i++) {
+    await click(page, "Turn the cut");
+    cuts.add(await page.locator("#resultImage").getAttribute("src"));
+  }
+  expect(cuts.size).toBe(3);
+  const download = page.waitForEvent("download");
+  await click(page, "Save image");
+  const png = await readFile(await (await download).path());
+  expect(png.readUInt32BE(16)).toBe(1000);
+  expect(png.readUInt32BE(20)).toBe(900);
+  expect(
+    png.equals(
+      Buffer.from(
+        (await page.locator("#resultImage").getAttribute("src")).split(",")[1],
+        "base64",
+      ),
+    ),
+  ).toBe(true);
+  expect((await saved(page)).fillingToppings).toEqual(filling);
+  expect((await saved(page)).toppings).toEqual(toppings);
+  await click(page, "Whole cake");
+  expect(await page.locator("#resultImage").getAttribute("src")).toBe(whole);
+  await click(page, "Peek inside");
+  await click(page, "Keep editing");
+  await page.reload();
+  expect((await saved(page)).sliceView).toBe(true);
+  expect((await saved(page)).cutDirection).toBe(2);
+  await page.locator("#finish").click();
+  await settled(page);
+  await expect(button(page, "Whole cake")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("cut geometry uses spatial intersections for every silhouette and never invents single-layer filling", async ({
+  page,
+}) => {
+  await start(page);
+  const checks = await page.evaluate(async () => {
+    const { cutDetails, cakePath } = await import("/renderer.js");
+    const ctx = document.createElement("canvas").getContext("2d");
+    const data = [];
+    for (let shape = 0; shape < 4; shape++)
+      for (let direction = 0; direction < 3; direction++) {
+        const empty = { shape, layered: true, fillingToppings: [] };
+        const detail = cutDetails(empty, direction),
+          p = detail.sections[0].point;
+        const near = {
+          id: "near",
+          type: "grapes",
+          x: p.x * 0.5,
+          y: p.y * 0.5,
+          scale: 1,
+          rotation: 0,
+        };
+        const far = {
+          id: "far",
+          type: "blueberry",
+          x: -p.x * 0.8,
+          y: -p.y * 0.8,
+          scale: 1,
+          rotation: 0,
+        };
+        const result = cutDetails(
+          { ...empty, fillingToppings: [near, far] },
+          direction,
+        );
+        const single = cutDetails(
+          { ...empty, layered: false, fillingToppings: [near] },
+          direction,
+        );
+        data.push({
+          hits: result.sections[0].hits.map((t) => t.id),
+          single: single.ingredients.length,
+          inside: detail.boundary.every((p) =>
+            ctx.isPointInPath(cakePath(shape), p.x * 0.99, p.y * 0.99),
+          ),
+        });
+      }
+    return data;
+  });
+  expect(checks).toHaveLength(12);
+  for (const check of checks) {
+    expect(check.hits).toEqual(["near"]);
+    expect(check.single).toBe(0);
+    expect(check.inside).toBe(true);
+  }
+});
+
+test("legacy filling-stage recipes become double-layer cakes without losing work", async ({
+  page,
+}) => {
+  await start(page);
+  const seed = await saved(page);
+  const filling = [
+    {
+      id: "legacy-fruit",
+      type: "strawberryHalf",
+      x: 35,
+      y: 20,
+      scale: 1,
+      rotation: 0,
+      text: "",
+    },
+  ];
+  await page.evaluate(
+    (s) => localStorage.setItem("little-dessert-v1", JSON.stringify(s)),
+    {
+      ...seed,
+      schemaVersion: 4,
+      stage: 2,
+      layered: false,
+      plate: 5,
+      fillingToppings: filling,
+      cutDirection: 99,
+    },
+  );
+  await page.reload();
+  await expect(page.locator("#phaseTitle")).toHaveText("Filling");
+  await expect(page.locator(".filling-guide")).toContainText(
+    "Inside, not on top",
+  );
+  await expect(page.locator("#finish")).toBeDisabled();
+  await click(page, "Cover with the second layer →");
+  expect((await saved(page)).layered).toBe(true);
+  expect((await saved(page)).schemaVersion).toBe(5);
+  expect((await saved(page)).fillingToppings).toEqual(filling);
+  expect((await saved(page)).plate).toBe(5);
+  expect((await saved(page)).cutDirection).toBe(0);
 });

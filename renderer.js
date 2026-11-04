@@ -820,11 +820,19 @@ export function render(
     effect = null,
     coverage = 0,
     tool = null,
+    sliceView = false,
+    cutDirection = 0,
+    cakeOnly = false,
+    hideCake = false,
+    omitToppings = false,
   } = {},
 ) {
+  if (sliceView)
+    return renderSlice(c, state, { presentation, effect, cutDirection });
   stage = presentation ? 7 : stage;
   const workbench = !presentation && stage < 6;
-  const showFilling = stage === 2 || (stage === 3 && !state.layered);
+  const showFilling =
+    stage === 2 || (effect?.kind === "layer" && effect.progress < 0.6);
   const useBase =
     stage === 1 ||
     stage === 2 ||
@@ -849,19 +857,21 @@ export function render(
         : 0;
   c.clearRect(0, 0, 1000, 900);
   const bg = workbench ? 0 : state.background;
-  if (workbench) {
-    c.fillStyle = "#f6eee0";
-    c.fillRect(0, 0, 1000, 900);
-  } else backdrop(c, bg);
-  if (
-    effect?.kind === "scene" &&
-    effect.previousBackground !== undefined &&
-    effect.previousBackground !== bg
-  ) {
-    c.save();
-    c.globalAlpha = 1 - progress;
-    backdrop(c, effect.previousBackground);
-    c.restore();
+  if (!cakeOnly) {
+    if (workbench) {
+      c.fillStyle = "#f6eee0";
+      c.fillRect(0, 0, 1000, 900);
+    } else backdrop(c, bg);
+    if (
+      effect?.kind === "scene" &&
+      effect.previousBackground !== undefined &&
+      effect.previousBackground !== bg
+    ) {
+      c.save();
+      c.globalAlpha = 1 - progress;
+      backdrop(c, effect.previousBackground);
+      c.restore();
+    }
   }
   c.save();
   const camera = presentation
@@ -872,309 +882,337 @@ export function render(
   c.translate(500, 450);
   c.scale(camera, camera);
   c.translate(-500, -450);
-  // Soft cast shadow and handmade porcelain.
-  c.save();
-  c.filter = "blur(18px)";
-  ellipse(c, 520, 592, 337, 130, "#75523b25");
-  c.restore();
-  if (workbench) {
+  if (!cakeOnly) {
+    // Soft cast shadow and handmade porcelain.
     c.save();
-    c.filter = "blur(15px)";
-    ellipse(c, 510, 831, 167, 38, "#8a66492c");
+    c.filter = "blur(18px)";
+    ellipse(c, 520, 592, 337, 130, "#75523b25");
     c.restore();
-    const foot = c.createLinearGradient(360, 770, 625, 850);
-    foot.addColorStop(0, "#fffaf0");
-    foot.addColorStop(0.5, "#f4e1c9");
-    foot.addColorStop(1, "#d8bfa3");
-    ellipse(c, 500, 818, 145, 45, foot);
-    ellipse(c, 500, 807, 137, 37, "#fcf1de");
-    c.beginPath();
-    c.moveTo(471, 640);
-    c.bezierCurveTo(480, 704, 475, 761, 444, 794);
-    c.quadraticCurveTo(500, 826, 555, 794);
-    c.bezierCurveTo(525, 753, 522, 703, 530, 640);
-    c.closePath();
-    const stem = c.createLinearGradient(450, 0, 550, 0);
-    stem.addColorStop(0, "#e8d2b7");
-    stem.addColorStop(0.4, "#fff8e9");
-    stem.addColorStop(1, "#e0c5a6");
-    c.fillStyle = stem;
-    c.fill();
-  }
-  if (!workbench && state.plate > 0 && plates[state.plate]?.image) {
-    imagePlate(c, plates[state.plate]);
-  } else {
-    c.save();
-    c.translate(500, 492);
-    if (!workbench && state.plate === 0) {
-      for (let i = 0; i < 48; i++) {
-        const a = (i * Math.PI) / 24;
-        ellipse(
-          c,
-          Math.cos(a) * 323,
-          Math.sin(a) * 210 + 42,
-          22,
-          16,
-          "#f9f4e8",
-        );
-      }
-    }
-    const plate = workbench ? "#fff5e5" : "#fffaf0";
-    ellipse(c, 0, 53, workbench ? 330 : 350, workbench ? 180 : 224, "#c9bfae");
-    ellipse(c, 0, 43, workbench ? 330 : 350, workbench ? 180 : 224, plate);
-    c.strokeStyle = "#d5c8b4";
-    c.lineWidth = 2;
-    c.beginPath();
-    c.ellipse(
-      0,
-      43,
-      workbench ? 313 : 331,
-      workbench ? 166 : 207,
-      0,
-      0,
-      Math.PI * 2,
-    );
-    c.stroke();
-    c.beginPath();
-    c.ellipse(
-      0,
-      43,
-      workbench ? 288 : 292,
-      workbench ? 144 : 179,
-      0,
-      0,
-      Math.PI * 2,
-    );
-    c.strokeStyle = "#dfd4c0";
-    c.stroke();
-    if (!workbench && state.plate === 0) {
-      for (let i = 0; i < 42; i++) {
-        let a = (i * Math.PI) / 21;
-        ellipse(c, Math.cos(a) * 321, 43 + Math.sin(a) * 197, 3, 2, "#bd9b72");
-      }
-    }
-    c.restore();
-  }
-  // Scale the entire cake, including lettering and toppings, around its foot.
-  // The oblong platter needs a smaller cake to leave the ribbon rim visible.
-  c.save();
-  if (!workbench) {
-    const foot = 402 + (state.layered && stage >= 3 ? 145 : 85);
-    c.translate(500, 552);
-    const fit = state.plate === 1 ? 0.64 : state.plate > 0 ? 0.86 : 1;
-    c.scale(fit, fit);
-    c.translate(-500, -foot);
-  }
-  c.save();
-  c.translate(500, 402);
-  const p = cakePath(state.shape);
-  const depth = state.layered && stage >= 3 ? 145 : 85;
-  const base =
-    stage >= 4 && state.frosted
-      ? blend(
-          spongeColor,
-          cream,
-          effect?.kind === "cream-complete" ? 0.61 + 0.39 * reveal : 1,
-        )
-      : stage === 4
-        ? blend(spongeColor, cream, (coverage / 100) * 0.72)
-        : spongeColor;
-  // Extrude the same silhouette downwards, retaining a recognizable shape.
-  for (let y = depth; y >= 0; y -= 2) {
-    c.save();
-    c.translate(0, y + (effect?.kind === "layer" ? (y < 60 ? drop : 0) : drop));
-    c.fillStyle = base;
-    c.fill(p);
-    c.restore();
-  }
-  c.translate(0, drop);
-  c.save();
-  c.clip(bodyPath(state.shape, depth));
-  c.translate(0, 8);
-  const side = c.createLinearGradient(-260, 0, 260, 0);
-  side.addColorStop(0, "#ffffff30");
-  side.addColorStop(0.45, "#ffffff08");
-  side.addColorStop(1, "#56332036");
-  c.fillStyle = side;
-  c.fillRect(-300, 0, 600, 270);
-  c.restore();
-  // The side grain and faint frosting ridges share the same silhouette as every sponge.
-  c.save();
-  c.clip(bodyPath(state.shape, depth));
-  const sideOnly = new Path2D();
-  sideOnly.rect(-400, -250, 800, 700);
-  sideOnly.addPath(p);
-  c.clip(sideOnly, "evenodd");
-  if (stage >= 4 && state.frosted) {
-    for (let y = 55; y < 305; y += 23) {
+    if (workbench) {
+      c.save();
+      c.filter = "blur(15px)";
+      ellipse(c, 510, 831, 167, 38, "#8a66492c");
+      c.restore();
+      const foot = c.createLinearGradient(360, 770, 625, 850);
+      foot.addColorStop(0, "#fffaf0");
+      foot.addColorStop(0.5, "#f4e1c9");
+      foot.addColorStop(1, "#d8bfa3");
+      ellipse(c, 500, 818, 145, 45, foot);
+      ellipse(c, 500, 807, 137, 37, "#fcf1de");
       c.beginPath();
-      c.moveTo(-280, y);
-      c.quadraticCurveTo(0, y + 18, 280, y - 6);
-      stroke(c, "#fff9e51f", 2);
+      c.moveTo(471, 640);
+      c.bezierCurveTo(480, 704, 475, 761, 444, 794);
+      c.quadraticCurveTo(500, 826, 555, 794);
+      c.bezierCurveTo(525, 753, 522, 703, 530, 640);
+      c.closePath();
+      const stem = c.createLinearGradient(450, 0, 550, 0);
+      stem.addColorStop(0, "#e8d2b7");
+      stem.addColorStop(0.4, "#fff8e9");
+      stem.addColorStop(1, "#e0c5a6");
+      c.fillStyle = stem;
+      c.fill();
     }
-  } else {
-    for (let i = 0; i < 170; i++) {
+    if (!workbench && state.plate > 0 && plates[state.plate]?.image) {
+      imagePlate(c, plates[state.plate]);
+    } else {
+      c.save();
+      c.translate(500, 492);
+      if (!workbench && state.plate === 0) {
+        for (let i = 0; i < 48; i++) {
+          const a = (i * Math.PI) / 24;
+          ellipse(
+            c,
+            Math.cos(a) * 323,
+            Math.sin(a) * 210 + 42,
+            22,
+            16,
+            "#f9f4e8",
+          );
+        }
+      }
+      const plate = workbench ? "#fff5e5" : "#fffaf0";
       ellipse(
         c,
-        ((i * 137.6) % 540) - 270,
-        ((i * 61.3) % 300) - 15,
-        0.6 + (i % 3) * 0.3,
-        0.7,
-        i % 2 ? "#7e522115" : "#fff0bf26",
+        0,
+        53,
+        workbench ? 330 : 350,
+        workbench ? 180 : 224,
+        "#c9bfae",
       );
-    }
-  }
-  c.restore();
-  // Layers on the front of the sponge, clipped to the extruded body.
-  c.save();
-  const body = new Path2D();
-  for (let y = 0; y <= depth; y += 4) {
-    const q = cakePath(state.shape);
-    const m = new DOMMatrix().translate(0, y);
-    body.addPath(q, m);
-  }
-  c.clip(body);
-  c.translate(0, 68);
-  c.strokeStyle = !state.layered
-    ? "#00000000"
-    : stage >= 4 && state.frosted
-      ? "#fff7e44d"
-      : creamColors[state.fillingCream] + "e0";
-  c.lineWidth = 10;
-  c.stroke(p);
-  c.translate(0, 26);
-  c.strokeStyle = "#925d4540";
-  c.lineWidth = 2;
-  c.stroke(p);
-  c.restore();
-  // Naked sponge before frosting: warm baked edge and a soft, porous surface.
-  c.fillStyle = undercoat ? fillingColor : spongeColor;
-  c.fill(p);
-  const sponge = c.createRadialGradient(-70, -65, 20, 0, 0, 290);
-  sponge.addColorStop(0, "#fff3c67a");
-  sponge.addColorStop(0.7, "#fff1c81c");
-  sponge.addColorStop(1, "#86502c55");
-  c.fillStyle = sponge;
-  c.fill(p);
-  c.strokeStyle = "#ae79474d";
-  c.lineWidth = 5;
-  c.stroke(p);
-  c.save();
-  c.clip(p);
-  for (let i = 0; i < (undercoat ? 0 : 280); i++) {
-    const x = ((i * 173.17) % 500) - 250,
-      y = ((i * 97.31) % 330) - 165;
-    ellipse(
-      c,
-      x,
-      y,
-      0.7 + (i % 3) * 0.25,
-      0.6 + (i % 2) * 0.3,
-      i % 2 ? "#9e75411b" : "#fff3cd30",
-    );
-  }
-  c.restore();
-  if (
-    stage >= 1 &&
-    strokes?.length &&
-    (!showCream || effect?.kind === "cream-complete")
-  )
-    brushMarks(c, p, strokes, cream);
-  if (showCream) {
-    c.save();
-    if (effect?.kind === "cream-complete") c.globalAlpha *= reveal;
-    c.save();
-    c.shadowColor = "#9c6c4840";
-    c.shadowBlur = 8;
-    c.shadowOffsetY = 6;
-    c.fillStyle = cream;
-    c.fill(p);
-    c.restore();
-    // Rounded frosting lip and delicate drips.
-    c.save();
-    c.clip(bodyPath(state.shape, depth));
-    c.strokeStyle = cream;
-    c.lineWidth = 12;
-    c.stroke(p);
-    for (let i = 0; i < 15; i++) {
-      let a = 0.12 + (i * Math.PI) / 15;
-      const { x, y } = surfaceEdge(state.shape, a);
-      c.beginPath();
-      c.moveTo(x, y - 7);
-      c.quadraticCurveTo(x + 9, y + 48 + (i % 3) * 7, x + 16, y - 4);
-      c.lineWidth = 10;
-      c.stroke();
-    }
-    c.restore();
-    const top = c.createLinearGradient(-220, -160, 200, 160);
-    top.addColorStop(0, "#ffffff55");
-    top.addColorStop(0.6, "#ffffff00");
-    top.addColorStop(1, "#ae797417");
-    c.fillStyle = top;
-    c.fill(p);
-    c.strokeStyle = "#fff7eb8c";
-    c.lineWidth = 2;
-    c.stroke(p);
-    // Spatula ridges catch the light on the hand-smoothed frosting.
-    c.save();
-    c.clip(p);
-    c.strokeStyle = "#fff9ed80";
-    c.lineWidth = 4;
-    for (const [rx, ry, a, b] of [
-      [205, 126, 0.2, 4.9],
-      [165, 95, 2.9, 6.4],
-      [112, 64, 0.1, 3.8],
-    ]) {
-      c.beginPath();
-      c.ellipse(-3, -5, rx, ry, -0.04, a, b);
-      c.stroke();
-    }
-    c.restore();
-    c.restore();
-  }
-  c.restore();
-  const visibleToppings = showFilling
-    ? state.fillingToppings
-    : stage >= 5
-      ? [
-          ...(!state.layered && !state.frosted ? state.fillingToppings : []),
-          ...state.toppings,
-        ]
-      : [];
-  for (const t of visibleToppings) {
-    c.save();
-    c.shadowColor = "#61432d35";
-    c.shadowBlur = 3;
-    c.shadowOffsetY = 3;
-    const fall =
-      effect?.kind === "topping" && effect.id === t.id
-        ? -35 * (1 - progress) ** 2
-        : 0;
-    c.translate(500 + t.x, 402 + t.y + drop + fall);
-    c.scale(1, 0.82);
-    drawTopping(
-      c,
-      t.type,
-      0,
-      0,
-      t.scale * (0.96 + t.y * 0.0006),
-      t.rotation,
-      t.text,
-    );
-    c.restore();
-    if (!exporting && t.id === selected) {
-      c.save();
-      c.translate(500 + t.x, 402 + t.y);
-      c.rotate(t.rotation);
-      c.strokeStyle = "#ac6d79";
+      ellipse(c, 0, 43, workbench ? 330 : 350, workbench ? 180 : 224, plate);
+      c.strokeStyle = "#d5c8b4";
       c.lineWidth = 2;
-      c.setLineDash([5, 5]);
-      c.strokeRect(-43 * t.scale, -35 * t.scale, 86 * t.scale, 70 * t.scale);
+      c.beginPath();
+      c.ellipse(
+        0,
+        43,
+        workbench ? 313 : 331,
+        workbench ? 166 : 207,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      c.stroke();
+      c.beginPath();
+      c.ellipse(
+        0,
+        43,
+        workbench ? 288 : 292,
+        workbench ? 144 : 179,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      c.strokeStyle = "#dfd4c0";
+      c.stroke();
+      if (!workbench && state.plate === 0) {
+        for (let i = 0; i < 42; i++) {
+          let a = (i * Math.PI) / 21;
+          ellipse(
+            c,
+            Math.cos(a) * 321,
+            43 + Math.sin(a) * 197,
+            3,
+            2,
+            "#bd9b72",
+          );
+        }
+      }
       c.restore();
     }
   }
-  c.restore();
-  if (workbench && [1, 4].includes(stage)) {
+  if (!hideCake) {
+    // Scale the entire cake, including lettering and toppings, around its foot.
+    // The oblong platter needs a smaller cake to leave the ribbon rim visible.
+    c.save();
+    if (!workbench && !cakeOnly) {
+      const foot = 402 + (state.layered && stage >= 3 ? 145 : 85);
+      c.translate(500, 552);
+      const fit = state.plate === 1 ? 0.64 : state.plate > 0 ? 0.86 : 1;
+      c.scale(fit, fit);
+      c.translate(-500, -foot);
+    }
+    c.save();
+    c.translate(500, 402);
+    const p = cakePath(state.shape);
+    const depth = state.layered && stage >= 3 ? 145 : 85;
+    const base =
+      stage >= 4 && state.frosted
+        ? blend(
+            spongeColor,
+            cream,
+            effect?.kind === "cream-complete" ? 0.61 + 0.39 * reveal : 1,
+          )
+        : stage === 4
+          ? blend(spongeColor, cream, (coverage / 100) * 0.72)
+          : spongeColor;
+    // Extrude the same silhouette downwards, retaining a recognizable shape.
+    for (let y = depth; y >= 0; y -= 2) {
+      c.save();
+      c.translate(
+        0,
+        y + (effect?.kind === "layer" ? (y < 60 ? drop : 0) : drop),
+      );
+      c.fillStyle = base;
+      c.fill(p);
+      c.restore();
+    }
+    c.translate(0, drop);
+    c.save();
+    c.clip(bodyPath(state.shape, depth));
+    c.translate(0, 8);
+    const side = c.createLinearGradient(-260, 0, 260, 0);
+    side.addColorStop(0, "#ffffff30");
+    side.addColorStop(0.45, "#ffffff08");
+    side.addColorStop(1, "#56332036");
+    c.fillStyle = side;
+    c.fillRect(-300, 0, 600, 270);
+    c.restore();
+    // The side grain and faint frosting ridges share the same silhouette as every sponge.
+    c.save();
+    c.clip(bodyPath(state.shape, depth));
+    const sideOnly = new Path2D();
+    sideOnly.rect(-400, -250, 800, 700);
+    sideOnly.addPath(p);
+    c.clip(sideOnly, "evenodd");
+    if (stage >= 4 && state.frosted) {
+      for (let y = 55; y < 305; y += 23) {
+        c.beginPath();
+        c.moveTo(-280, y);
+        c.quadraticCurveTo(0, y + 18, 280, y - 6);
+        stroke(c, "#fff9e51f", 2);
+      }
+    } else {
+      for (let i = 0; i < 170; i++) {
+        ellipse(
+          c,
+          ((i * 137.6) % 540) - 270,
+          ((i * 61.3) % 300) - 15,
+          0.6 + (i % 3) * 0.3,
+          0.7,
+          i % 2 ? "#7e522115" : "#fff0bf26",
+        );
+      }
+    }
+    c.restore();
+    // Layers on the front of the sponge, clipped to the extruded body.
+    c.save();
+    const body = new Path2D();
+    for (let y = 0; y <= depth; y += 4) {
+      const q = cakePath(state.shape);
+      const m = new DOMMatrix().translate(0, y);
+      body.addPath(q, m);
+    }
+    c.clip(body);
+    c.translate(0, 68);
+    c.strokeStyle = !state.layered
+      ? "#00000000"
+      : stage >= 4 && state.frosted
+        ? "#fff7e44d"
+        : (state.customFilling || creamColors[state.fillingCream]) + "e0";
+    c.lineWidth = 10;
+    c.stroke(p);
+    c.translate(0, 26);
+    c.strokeStyle = "#925d4540";
+    c.lineWidth = 2;
+    c.stroke(p);
+    c.restore();
+    // Naked sponge before frosting: warm baked edge and a soft, porous surface.
+    c.fillStyle = undercoat ? fillingColor : spongeColor;
+    c.fill(p);
+    const sponge = c.createRadialGradient(-70, -65, 20, 0, 0, 290);
+    sponge.addColorStop(0, "#fff3c67a");
+    sponge.addColorStop(0.7, "#fff1c81c");
+    sponge.addColorStop(1, "#86502c55");
+    c.fillStyle = sponge;
+    c.fill(p);
+    c.strokeStyle = "#ae79474d";
+    c.lineWidth = 5;
+    c.stroke(p);
+    c.save();
+    c.clip(p);
+    for (let i = 0; i < (undercoat ? 0 : 280); i++) {
+      const x = ((i * 173.17) % 500) - 250,
+        y = ((i * 97.31) % 330) - 165;
+      ellipse(
+        c,
+        x,
+        y,
+        0.7 + (i % 3) * 0.25,
+        0.6 + (i % 2) * 0.3,
+        i % 2 ? "#9e75411b" : "#fff3cd30",
+      );
+    }
+    c.restore();
+    if (
+      stage >= 1 &&
+      strokes?.length &&
+      (!showCream || effect?.kind === "cream-complete")
+    )
+      brushMarks(c, p, strokes, cream);
+    if (showCream) {
+      c.save();
+      if (effect?.kind === "cream-complete") c.globalAlpha *= reveal;
+      c.save();
+      c.shadowColor = "#9c6c4840";
+      c.shadowBlur = 8;
+      c.shadowOffsetY = 6;
+      c.fillStyle = cream;
+      c.fill(p);
+      c.restore();
+      // Rounded frosting lip and delicate drips.
+      c.save();
+      c.clip(bodyPath(state.shape, depth));
+      c.strokeStyle = cream;
+      c.lineWidth = 12;
+      c.stroke(p);
+      for (let i = 0; i < 15; i++) {
+        let a = 0.12 + (i * Math.PI) / 15;
+        const { x, y } = surfaceEdge(state.shape, a);
+        c.beginPath();
+        c.moveTo(x, y - 7);
+        c.quadraticCurveTo(x + 9, y + 48 + (i % 3) * 7, x + 16, y - 4);
+        c.lineWidth = 10;
+        c.stroke();
+      }
+      c.restore();
+      const top = c.createLinearGradient(-220, -160, 200, 160);
+      top.addColorStop(0, "#ffffff55");
+      top.addColorStop(0.6, "#ffffff00");
+      top.addColorStop(1, "#ae797417");
+      c.fillStyle = top;
+      c.fill(p);
+      c.strokeStyle = "#fff7eb8c";
+      c.lineWidth = 2;
+      c.stroke(p);
+      // Spatula ridges catch the light on the hand-smoothed frosting.
+      c.save();
+      c.clip(p);
+      c.strokeStyle = "#fff9ed80";
+      c.lineWidth = 4;
+      for (const [rx, ry, a, b] of [
+        [205, 126, 0.2, 4.9],
+        [165, 95, 2.9, 6.4],
+        [112, 64, 0.1, 3.8],
+      ]) {
+        c.beginPath();
+        c.ellipse(-3, -5, rx, ry, -0.04, a, b);
+        c.stroke();
+      }
+      c.restore();
+      c.restore();
+    }
+    c.restore();
+    const visibleToppings = omitToppings
+      ? []
+      : showFilling
+        ? state.fillingToppings
+        : stage >= 5
+          ? [
+              ...(!state.layered && !state.frosted
+                ? state.fillingToppings
+                : []),
+              ...state.toppings,
+            ]
+          : [];
+    for (const t of visibleToppings) {
+      c.save();
+      c.shadowColor = "#61432d35";
+      c.shadowBlur = 3;
+      c.shadowOffsetY = 3;
+      const fall =
+        effect?.kind === "topping" && effect.id === t.id
+          ? -35 * (1 - progress) ** 2
+          : 0;
+      c.translate(
+        500 + t.x,
+        402 + t.y + (effect?.kind === "layer" ? 70 : drop) + fall,
+      );
+      c.scale(1, 0.82);
+      drawTopping(
+        c,
+        t.type,
+        0,
+        0,
+        t.scale * (0.96 + t.y * 0.0006),
+        t.rotation,
+        t.text,
+      );
+      c.restore();
+      if (!exporting && t.id === selected) {
+        c.save();
+        c.translate(500 + t.x, 402 + t.y);
+        c.rotate(t.rotation);
+        c.strokeStyle = "#ac6d79";
+        c.lineWidth = 2;
+        c.setLineDash([5, 5]);
+        c.strokeRect(-43 * t.scale, -35 * t.scale, 86 * t.scale, 70 * t.scale);
+        c.restore();
+      }
+    }
+    c.restore();
+  }
+  if (!cakeOnly && workbench && [1, 4].includes(stage)) {
     const travel = effect?.kind === "tools" ? 100 * (1 - progress) ** 3 : 0;
     drawBowl(c, 210 - travel, 735, cream, 0.85);
     if (tool) {
@@ -1189,7 +1227,7 @@ export function render(
       );
     } else spatula(c, 796 + travel, 700, -0.6, 0.9);
   }
-  if (!workbench) {
+  if (!cakeOnly && !workbench) {
     // Botanical sprig to frame the composition without using external assets.
     c.save();
     c.translate(840, 735);
@@ -1211,7 +1249,7 @@ export function render(
     c.restore();
   }
   c.restore();
-  if (presentation) {
+  if (presentation && !cakeOnly) {
     c.save();
     c.font = "italic 27px Georgia, serif";
     c.textAlign = "center";
@@ -1225,4 +1263,457 @@ function bodyPath(shape, depth) {
   for (let y = 0; y <= depth + 2; y += 4)
     p.addPath(cakePath(shape), new DOMMatrix().translate(0, y));
   return p;
+}
+
+// A 2.5D cut uses the stored recipe, not a generated photograph. Geometry stays
+// in the cake's own coordinates until the shared plate/camera transform is applied.
+const cutAngles = [0.92, Math.PI / 2, 2.22];
+let cutCache = null;
+const cutGeometry = new Map();
+const geometryContext = document.createElement("canvas").getContext("2d");
+function boundaryPoint(shape, angle) {
+  const path = cakePath(shape);
+  const ctx = geometryContext;
+  const dx = Math.cos(angle),
+    dy = Math.sin(angle) * 0.65;
+  let low = 0,
+    high = 550;
+  for (let i = 0; i < 20; i++) {
+    const mid = (low + high) / 2;
+    if (ctx.isPointInPath(path, mid * dx, mid * dy)) low = mid;
+    else high = mid;
+  }
+  return { x: low * dx, y: low * dy };
+}
+export function cutDetails(state, direction = 0) {
+  const angle = cutAngles[direction] ?? cutAngles[0];
+  const from = angle - 0.46,
+    to = angle + 0.46;
+  const geometryKey = `${state.shape}:${direction}`;
+  if (!cutGeometry.has(geometryKey))
+    cutGeometry.set(
+      geometryKey,
+      Array.from({ length: 33 }, (_, i) =>
+        boundaryPoint(state.shape, from + ((to - from) * i) / 32),
+      ),
+    );
+  const boundary = cutGeometry.get(geometryKey);
+  const sections = [boundary[0], boundary.at(-1)].map((point) => {
+    const bx = point.x,
+      by = point.y / 0.65,
+      length = Math.hypot(bx, by);
+    const hits = state.layered
+      ? (state.fillingToppings || []).flatMap((t) => {
+          const px = t.x,
+            py = t.y / 0.65;
+          const u = (px * bx + py * by) / (length * length);
+          const distance = Math.abs(px * by - py * bx) / length;
+          const radius =
+            (t.type.startsWith("strawberry")
+              ? 27
+              : t.type === "blueberry"
+                ? 19
+                : 24) * t.scale;
+          if (u < 0 || u > 1 || distance > radius) return [];
+          return [
+            {
+              ...t,
+              u,
+              radius: Math.sqrt(
+                Math.max(0, radius * radius - distance * distance),
+              ),
+              distance,
+            },
+          ];
+        })
+      : [];
+    return { point, length, hits };
+  });
+  return {
+    angle,
+    boundary,
+    sections,
+    ingredients: [
+      ...new Set(sections.flatMap((s) => s.hits.map((t) => t.type))),
+    ],
+  };
+}
+function surfaceWedge(details) {
+  const path = new Path2D();
+  path.moveTo(0, 0);
+  for (const p of details.boundary) path.lineTo(p.x, p.y);
+  path.closePath();
+  return path;
+}
+function cutFace(c, state, section, depth) {
+  const { point, length, hits } = section;
+  c.save();
+  c.transform(point.x / length, point.y / length, 0, 1, 0, 0);
+  c.beginPath();
+  c.rect(0, 0, length, depth);
+  c.clip();
+  const sponge = state.customCake || cakeColors[state.cake];
+  const cream = state.frosted
+    ? state.customCream || creamColors[state.cream]
+    : state.customFilling || creamColors[state.fillingCream];
+  const filling = state.customFilling || creamColors[state.fillingCream];
+  c.fillStyle = sponge;
+  c.fillRect(0, 0, length, depth);
+  const light = c.createLinearGradient(0, 0, length, depth);
+  light.addColorStop(0, "#fff6d23d");
+  light.addColorStop(1, "#79533224");
+  c.fillStyle = light;
+  c.fillRect(0, 0, length, depth);
+  for (let i = 0; i < 170; i++) {
+    const x = (i * 73.319) % length,
+      y = (i * 41.783) % depth;
+    ellipse(
+      c,
+      x,
+      y,
+      0.7 + (i % 3) * 0.55,
+      0.65 + (i % 4) * 0.22,
+      i % 3 ? "#86582b38" : "#fff9dc90",
+    );
+  }
+  if (state.layered) {
+    c.beginPath();
+    c.moveTo(0, 47);
+    c.bezierCurveTo(length * 0.3, 43, length * 0.6, 52, length, 46);
+    c.lineTo(length, 102);
+    c.bezierCurveTo(length * 0.7, 98, length * 0.2, 106, 0, 101);
+    c.closePath();
+    c.fillStyle = filling;
+    c.fill();
+    c.save();
+    c.clip();
+    for (const hit of [...hits].sort((a, b) => a.u - b.u)) {
+      // Width narrows when the knife grazes a fruit; its center never moves.
+      fruitSection(
+        c,
+        hit.type,
+        hit.u * length,
+        75,
+        Math.max(2, hit.radius),
+        hit.scale,
+        hit.rotation,
+      );
+    }
+    c.restore();
+    c.beginPath();
+    c.moveTo(0, 101);
+    c.quadraticCurveTo(length / 2, 105, length, 102);
+    stroke(c, "#9c75542d", 1.4);
+  }
+  if (state.frosted || (!state.layered && state.baseCream)) {
+    c.beginPath();
+    c.moveTo(0, 2);
+    c.quadraticCurveTo(length / 2, 6, length, 2);
+    stroke(c, cream, 7);
+    c.fillStyle = cream;
+    c.fillRect(length - 4, 0, 4, depth);
+  }
+  c.strokeStyle = "#99714f45";
+  c.lineWidth = 1;
+  c.strokeRect(0, 0, length, depth);
+  c.restore();
+}
+function fruitSection(c, type, x, y, radius, scale, rotation) {
+  c.save();
+  c.translate(x, y);
+  c.rotate(Math.max(-0.25, Math.min(0.25, rotation * 0.15)));
+  const height = Math.min(24, 22 * scale);
+  c.scale(radius / 24, height / 24);
+  const strawberry = type.startsWith("strawberry");
+  const grape = type === "grapes",
+    blue = type === "blueberry",
+    kiwi = type === "kiwi";
+  const chocolate = type === "chocolate" || type === "cookie";
+  if (strawberry) {
+    c.beginPath();
+    c.moveTo(0, -24);
+    c.bezierCurveTo(12, -23, 25, 4, 23, 15);
+    c.bezierCurveTo(18, 26, -18, 26, -23, 15);
+    c.bezierCurveTo(-25, 4, -12, -23, 0, -24);
+    c.closePath();
+    const g = c.createRadialGradient(-3, 8, 2, 0, 0, 30);
+    g.addColorStop(0, "#ffded0");
+    g.addColorStop(0.45, "#efa09a");
+    g.addColorStop(1, "#c7535b");
+    c.fillStyle = g;
+    c.fill();
+    stroke(c, "#b35b5c", 1.5);
+    c.save();
+    c.clip();
+    for (let i = 0; i < 11; i++) {
+      const a = (i / 10) * Math.PI;
+      c.beginPath();
+      c.moveTo(0, -13);
+      c.quadraticCurveTo(
+        Math.cos(a) * 10,
+        6,
+        Math.cos(a) * 22,
+        Math.sin(a) * 18 + 4,
+      );
+      stroke(c, "#ffe6cc90", 1.2);
+    }
+    for (let i = 0; i < 20; i++)
+      ellipse(
+        c,
+        ((i * 17.3) % 39) - 19,
+        ((i * 23.9) % 37) - 14,
+        0.6,
+        1.1,
+        "#f9d8a1a0",
+      );
+    c.restore();
+  } else if (chocolate) {
+    c.beginPath();
+    c.roundRect(-22, -18, 44, 36, type === "cookie" ? 15 : 3);
+    c.fillStyle = type === "cookie" ? "#d1a46d" : "#694536";
+    c.fill();
+    stroke(c, "#6f493c70", 1.3);
+    for (let i = 0; i < 9; i++)
+      ellipse(
+        c,
+        ((i * 17) % 36) - 18,
+        ((i * 23) % 28) - 14,
+        1.7,
+        1.2,
+        type === "cookie" ? "#654739" : "#b0816050",
+      );
+  } else {
+    const colors = grape
+      ? ["#eef2c6", "#a0b961"]
+      : blue
+        ? ["#d9c4e3", "#6578a9"]
+        : kiwi
+          ? ["#e9edba", "#91ab50"]
+          : type === "lemon"
+            ? ["#fff4b8", "#e9c85e"]
+            : type === "orange" || type.startsWith("mango")
+              ? ["#ffe8a3", "#e9aa58"]
+              : type === "cherry"
+                ? ["#f3aaa1", "#b7565b"]
+                : type === "banana"
+                  ? ["#fff4c8", "#e4cc8a"]
+                  : ["#f4d7cf", "#c5938b"];
+    const g = c.createRadialGradient(-6, -7, 2, 0, 0, 25);
+    g.addColorStop(0, colors[0]);
+    g.addColorStop(1, colors[1]);
+    ellipse(c, 0, 0, 23, grape ? 25 : 22, g);
+    c.strokeStyle = colors[1];
+    c.lineWidth = 1.5;
+    c.stroke();
+    if (grape) {
+      ellipse(c, -4, 1, 2, 4, "#a0a16d80");
+      ellipse(c, 4, 3, 1.8, 3, "#a0a16d80");
+      c.beginPath();
+      c.ellipse(-4, -3, 15, 19, -0.1, 2.5, 4.7);
+      stroke(c, "#fffce6a0", 1.5);
+    } else if (blue) {
+      for (let i = 0; i < 5; i++) {
+        const a = (i * Math.PI * 2) / 5;
+        ellipse(c, Math.cos(a) * 5, Math.sin(a) * 5, 1.8, 1, "#7c638a90");
+      }
+    } else {
+      for (let i = 0; i < (kiwi ? 12 : 7); i++) {
+        const a = (i * Math.PI * 2) / (kiwi ? 12 : 7);
+        c.beginPath();
+        c.moveTo(0, 0);
+        c.lineTo(Math.cos(a) * 19, Math.sin(a) * 18);
+        stroke(c, "#fff7d67a", 1.1);
+        if (kiwi)
+          ellipse(c, Math.cos(a) * 10, Math.sin(a) * 9, 0.8, 1.2, "#574e36");
+      }
+    }
+  }
+  c.restore();
+}
+function newArtCanvas() {
+  const c = document.createElement("canvas");
+  c.width = 1000;
+  c.height = 900;
+  return c;
+}
+function cutTextures(state, details, direction) {
+  const key = JSON.stringify([
+    state.shape,
+    state.cake,
+    state.cream,
+    state.fillingCream,
+    state.customCake,
+    state.customCream,
+    state.customFilling,
+    state.layered,
+    state.frosted,
+    state.baseCream,
+    state.toppings,
+    state.fillingToppings,
+  ]);
+  if (cutCache?.key !== key) {
+    const cake = newArtCanvas();
+    render(cake.getContext("2d"), state, {
+      stage: 7,
+      cakeOnly: true,
+      omitToppings: true,
+    });
+    const decorations = newArtCanvas(),
+      d = decorations.getContext("2d");
+    const visibleDecorations = [
+      ...(!state.layered && !state.frosted ? state.fillingToppings : []),
+      ...state.toppings,
+    ];
+    for (const t of visibleDecorations) {
+      d.save();
+      d.translate(500 + t.x, 402 + t.y);
+      d.scale(1, 0.82);
+      d.shadowColor = "#61432d35";
+      d.shadowBlur = 3;
+      d.shadowOffsetY = 3;
+      drawTopping(
+        d,
+        t.type,
+        0,
+        0,
+        t.scale * (0.96 + t.y * 0.0006),
+        t.rotation,
+        t.text,
+      );
+      d.restore();
+    }
+    cutCache = { key, cake, decorations, variants: new Map() };
+  }
+  if (!cutCache.variants.has(direction)) {
+    const top = surfaceWedge(details),
+      body = new Path2D();
+    const depth = state.layered ? 145 : 85;
+    for (let y = 0; y <= depth; y++)
+      body.addPath(top, new DOMMatrix().translate(500, 402 + y));
+    const remaining = newArtCanvas();
+    const r = remaining.getContext("2d");
+    r.drawImage(cutCache.cake, 0, 0);
+    r.globalCompositeOperation = "destination-out";
+    r.fill(body);
+    // Split toppings by the top-plane wedge, not by the extruded side silhouette.
+    const a = details.angle - 0.46,
+      b = details.angle + 0.46,
+      cone = new Path2D();
+    cone.moveTo(500, 402);
+    cone.lineTo(500 + Math.cos(a) * 3000, 402 + Math.sin(a) * 1950);
+    cone.lineTo(500 + Math.cos(b) * 3000, 402 + Math.sin(b) * 1950);
+    cone.closePath();
+    const remainDecor = newArtCanvas(),
+      pieceDecor = newArtCanvas();
+    const rd = remainDecor.getContext("2d"),
+      pd = pieceDecor.getContext("2d");
+    rd.drawImage(cutCache.decorations, 0, 0);
+    rd.globalCompositeOperation = "destination-out";
+    rd.fill(cone);
+    pd.clip(cone);
+    pd.drawImage(cutCache.decorations, 0, 0);
+    const remainingTop = newArtCanvas(),
+      pieceTop = newArtCanvas();
+    const worldTop = new Path2D();
+    worldTop.addPath(top, new DOMMatrix().translate(500, 402));
+    const worldCake = new Path2D();
+    worldCake.addPath(
+      cakePath(state.shape),
+      new DOMMatrix().translate(500, 402),
+    );
+    const rt = remainingTop.getContext("2d"),
+      pt = pieceTop.getContext("2d");
+    rt.clip(worldCake);
+    rt.drawImage(cutCache.cake, 0, 0);
+    rt.globalCompositeOperation = "destination-out";
+    rt.fill(worldTop);
+    pt.clip(worldTop);
+    pt.drawImage(cutCache.cake, 0, 0);
+    // Keep only the current angle to bound memory on mobile browsers.
+    cutCache.variants.clear();
+    cutCache.variants.set(direction, {
+      remainingTop,
+      pieceTop,
+      remaining,
+      remainDecor,
+      pieceDecor,
+    });
+  }
+  return cutCache.variants.get(direction);
+}
+function renderSlice(c, state, { presentation, effect, cutDirection }) {
+  render(c, state, { presentation, stage: 7, hideCake: true });
+  const details = cutDetails(state, cutDirection),
+    textures = cutTextures(state, details, cutDirection),
+    depth = state.layered ? 145 : 85;
+  c.save();
+  c.translate(500, 450);
+  c.scale(presentation ? 0.91 : 1, presentation ? 0.91 : 1);
+  c.translate(-500, -450);
+  c.translate(500, 552);
+  const fit = state.plate === 1 ? 0.64 : state.plate > 0 ? 0.86 : 1;
+  c.scale(fit, fit);
+  c.translate(-500, -402 - depth);
+  const faces = () => {
+    c.save();
+    c.translate(500, 402);
+    for (const section of [...details.sections].sort(
+      (a, b) => a.point.y - b.point.y,
+    ))
+      cutFace(c, state, section, depth);
+    c.restore();
+  };
+  faces();
+  c.drawImage(textures.remaining, 0, 0);
+  c.drawImage(textures.remainingTop, 0, 0);
+  c.drawImage(textures.remainDecor, 0, 0);
+  const progress = effect?.kind === "cut" ? 1 - (1 - effect.progress) ** 3 : 1;
+  c.translate(
+    Math.cos(details.angle) * 155 * progress,
+    Math.sin(details.angle) * 110 * progress,
+  );
+  c.save();
+  c.translate(500, 402 + depth);
+  c.filter = "blur(8px)";
+  ellipse(c, 0, 35, 95, 36, "#6c49342b");
+  c.restore();
+  // Turn the detached slice on its plate so a real cut face faces the viewer.
+  // Its top texture and decorations use one shared ground-plane rotation.
+  const visibleIndex =
+    details.sections[0].hits.length > details.sections[1].hits.length ? 0 : 1;
+  const pieceAngle = visibleIndex === 0 ? Math.PI + 0.24 : -0.24;
+  const rotation = pieceAngle - details.angle;
+  const cos = Math.cos(rotation),
+    sin = Math.sin(rotation);
+  const transform = new DOMMatrix([cos, 0.65 * sin, -sin / 0.65, cos, 0, 0]);
+  const top = new Path2D();
+  top.addPath(surfaceWedge(details), transform);
+  c.save();
+  c.translate(500, 402);
+  const coat = state.frosted
+    ? state.customCream || creamColors[state.cream]
+    : state.customCake || cakeColors[state.cake];
+  const side = c.createLinearGradient(-150, 0, 180, depth);
+  side.addColorStop(0, coat);
+  side.addColorStop(1, blend(coat, "#9f7956", 0.15));
+  c.fillStyle = side;
+  for (let y = depth; y >= 0; y -= 1) {
+    c.save();
+    c.translate(0, y);
+    c.fill(top);
+    c.restore();
+  }
+  const section = details.sections[visibleIndex],
+    point = new DOMPoint(section.point.x, section.point.y).matrixTransform(
+      transform,
+    );
+  cutFace(c, state, { ...section, point }, depth);
+  c.save();
+  c.transform(cos, 0.65 * sin, -sin / 0.65, cos, 0, 0);
+  c.translate(-500, -402);
+  c.drawImage(textures.pieceTop, 0, 0);
+  c.drawImage(textures.pieceDecor, 0, 0);
+  c.restore();
+  c.restore();
+  c.restore();
 }

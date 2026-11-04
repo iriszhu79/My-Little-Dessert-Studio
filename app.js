@@ -8,6 +8,7 @@ import {
   creamColors,
   toppingNames,
   drawBowl,
+  cutDetails,
 } from "./renderer.js";
 const $ = (s) => document.querySelector(s),
   canvas = $("#cake"),
@@ -27,7 +28,9 @@ const fresh = () => ({
   frosted: false,
   frosting: [],
   stage: 0,
-  schemaVersion: 4,
+  schemaVersion: 5,
+  sliceView: false,
+  cutDirection: 0,
   baseCream: false,
   baseStrokes: [],
   layersChosen: false,
@@ -125,7 +128,21 @@ try {
     state.slices = 0;
     if (!data.schemaVersion || data.schemaVersion < 4)
       state.plate = data.plate === 2 ? 3 : 0;
-    state.schemaVersion = 4;
+    if (!data.schemaVersion || data.schemaVersion < 5) {
+      // Earlier players placed filling before choosing layers. Keep that work inside.
+      if ([1, 2].includes(state.stage)) {
+        state.layered = true;
+        state.layersChosen = true;
+      }
+    }
+    state.sliceView = data.sliceView === true;
+    state.cutDirection =
+      Number.isInteger(data.cutDirection) &&
+      data.cutDirection >= 0 &&
+      data.cutDirection < 3
+        ? data.cutDirection
+        : 0;
+    state.schemaVersion = 5;
     state.fillingToppings = state.fillingToppings.map((t) =>
       t.type === "mint" ? { ...t, type: "grapes" } : t,
     );
@@ -251,7 +268,9 @@ function paint() {
   const coverage = [1, 4].includes(step) ? frostCoverage() : 0;
   render(ctx, state, {
     selected,
-    stage: step,
+    stage: step === 3 ? 0 : step === 2 && effect?.kind === "layer" ? 3 : step,
+    sliceView: presentation && state.sliceView,
+    cutDirection: state.cutDirection,
     presentation,
     effect,
     coverage,
@@ -274,6 +293,12 @@ function paint() {
       ? "A lovely smooth finish. Ready for the next little step."
       : "Hold and sweep with your spatula. At 85%, we will finish the last little bit."
     : $("#hint").textContent;
+  if ($("#result").open && effect?.kind === "cut") {
+    $("#download").disabled = true;
+    $("#sliceAnimation").hidden = false;
+    $("#resultImage").hidden = true;
+    $("#sliceAnimation").getContext("2d").drawImage(canvas, 0, 0);
+  }
   $("#undo").disabled = !history.length;
   $("#selectionTools").hidden =
     !activeToppings().some((t) => t.id === selected) || ![2, 5].includes(step);
@@ -291,6 +316,12 @@ function toast(message) {
   $("#toast").classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => $("#toast").classList.remove("show"), 2600);
+}
+function route() {
+  return state.layered ? [0, 3, 1, 2, 4, 5, 6, 7] : [0, 3, 4, 5, 6, 7];
+}
+function nextStage() {
+  return route()[route().indexOf(step) + 1] ?? 7;
 }
 const stepNames = [
   "Sponge",
@@ -315,8 +346,8 @@ const subtitles = [
 const descriptions = [
   "Pick a shape and a sponge flavor. We will take it from here.",
   "Choose a bowl. Hold and sweep to spread the cream yourself.",
-  "Add as much filling as you like. A little chocolate is lovely, too.",
-  "Keep it simple, or tuck your filling under another soft layer.",
+  "A little surprise inside. These fillings go between your sponge layers.",
+  "Choose your cake before we fill it. One soft sponge, or a little surprise inside?",
   "Your hand, your spatula. Smooth the coat to 85% for a soft finish.",
   "Pick a treat. Place, turn, and arrange it just how you like.",
   "From the cake stand to a little moment worth keeping.",
@@ -493,7 +524,9 @@ function material(type) {
   return b;
 }
 function panel() {
-  $("#stepCount").textContent = `0${step + 1} / 08`;
+  const journey = route();
+  $("#stepCount").textContent =
+    `0${journey.indexOf(step) + 1} / 0${journey.length}`;
   $("#phaseTitle").textContent = stepNames[step];
   const p = $("#panel");
   p.replaceChildren();
@@ -546,31 +579,36 @@ function panel() {
   if (step === 3) {
     const row = document.createElement("div");
     row.className = "layer-options";
-    row.append(
-      button("Keep one layer", state.layersChosen && !state.layered, () => {
-        change(() => {
-          state.layered = false;
-          state.layersChosen = true;
-        });
-        play("sponge", () => selectStep(4));
-      }),
-      button("Add a second layer", state.layered, () => {
-        if (state.layered) {
-          selectStep(4);
-          return;
-        }
-        change(() => {
-          state.layered = true;
-          state.layersChosen = true;
-        });
-        play("layer", () => selectStep(4));
-      }),
-    );
+    [false, true].forEach((two) => {
+      const diagram = `<svg viewBox="0 0 120 86" aria-hidden="true"><ellipse cx="60" cy="70" rx="52" ry="10" fill="#dfcdb24d"/><rect x="17" y="${two ? 49 : 35}" width="86" height="23" rx="7" fill="#ecd3a5" stroke="#bf956c"/>${two ? '<rect x="17" y="36" width="86" height="15" rx="5" fill="#fff6e6"/><circle cx="35" cy="44" r="6" fill="#d97c7e"/><circle cx="60" cy="44" r="6" fill="#929fc5"/><circle cx="85" cy="44" r="6" fill="#b1c67a"/><rect x="17" y="14" width="86" height="24" rx="7" fill="#ecd3a5" stroke="#bf956c"/>' : ""}<path d="M20 ${two ? 17 : 37}Q60 ${two ? 4 : 24} 100 ${two ? 17 : 37}" fill="none" stroke="#fff3ce" stroke-width="4"/></svg>`;
+      row.append(
+        button(
+          two ? "Add a second layer" : "Keep one layer",
+          state.layersChosen && state.layered === two,
+          () => {
+            change(() => {
+              state.layered = two;
+              state.layersChosen = true;
+            });
+            selectStep(two ? 1 : 4);
+          },
+          diagram,
+        ),
+      );
+    });
     p.append(row);
     const note = document.createElement("p");
     note.className = "stage-note";
-    note.textContent =
-      "Your filling stays safe. Revisit it whenever inspiration strikes.";
+    note.textContent = state.fillingToppings.length
+      ? "Your filling is kept if you switch back to two layers. Add toppings later in Decorate."
+      : "Two layers: cream and fruit inside. One layer: decorate the top after frosting.";
+    p.append(note);
+  }
+  if (step === 2) {
+    const note = document.createElement("div");
+    note.className = "filling-guide";
+    note.innerHTML =
+      "<strong>Inside, not on top</strong><span>Another sponge will cover this layer. Your fruit will show in the final slice.</span>";
     p.append(note);
   }
   if (step === 2 || step === 5) {
@@ -680,16 +718,16 @@ function panel() {
     p.append(b);
   }
   const completions = {
-    0: ["Place this sponge", () => play("sponge", () => selectStep(1))],
+    0: ["Place this sponge", () => play("sponge", () => selectStep(3))],
     2: [
-      state.fillingToppings.length ? "Finish filling" : "Keep it simple",
-      () => selectStep(3),
+      "Cover with the second layer →",
+      () => play("layer", () => selectStep(4)),
     ],
     5: ["Ready to plate", () => selectStep(6)],
     6: ["Set the scene", () => selectStep(7)],
   };
   if ([1, 4].includes(step) && state[brushKeys()[1]])
-    completions[step] = ["Keep this coat", () => selectStep(step + 1)];
+    completions[step] = ["Keep this coat", () => selectStep(nextStage())];
   if (completions[step]) {
     const [label, action] = completions[step],
       done = document.createElement("button");
@@ -704,6 +742,9 @@ function panel() {
     p.append(done);
   }
   $("#prev").disabled = step === 0;
+  $("#finish").disabled = step < 5;
+  $("#finish").title =
+    step < 5 ? "Finish after decorating your cake" : "Show your finished cake";
   $("#hint").textContent = [1, 4].includes(step)
     ? "Tap or sweep across the cake to spread cream"
     : step === 2 || step === 5
@@ -811,7 +852,7 @@ function maybeCompleteFrost() {
     play("cream-complete", () => {
       commitGesture();
       if (step === completedStage) {
-        selectStep(completedStage + 1);
+        selectStep(nextStage());
         toast("Beautifully smooth. On to the next little step.");
       }
     });
@@ -1014,7 +1055,8 @@ $("#undo").onclick = () => {
   }
 };
 $("#prev").onclick = () => {
-  selectStep(Math.max(0, step - 1));
+  const journey = route();
+  selectStep(journey[Math.max(0, journey.indexOf(step) - 1)]);
 };
 $("#cancelClear").onclick = () => $("#clearConfirm").close();
 $("#confirmClear").onclick = () => {
@@ -1034,18 +1076,50 @@ function artwork() {
   image.getContext("2d").drawImage(canvas, 0, 0);
   return image;
 }
+function updatePhoto() {
+  $("#download").disabled = false;
+  $("#sliceAnimation").hidden = true;
+  $("#resultImage").hidden = false;
+  $("#resultImage").src = artwork().toDataURL("image/png");
+  $("#peek").hidden = state.sliceView;
+  $("#wholeCake").hidden = !state.sliceView;
+  $("#turnCut").hidden = !state.sliceView;
+  const details = cutDetails(state, state.cutDirection);
+  $("#cutNote").textContent = !state.sliceView
+    ? "A little happiness, worth keeping."
+    : !state.layered
+      ? "One soft sponge, with your own frosting and toppings."
+      : details.ingredients.length
+        ? `Inside this cut: ${details.ingredients.map((t) => toppingNames[t]).join(", ")}.`
+        : "A soft cream center. No fruit along this cut — try another angle.";
+  $("#resultImage").alt = state.sliceView
+    ? "Your cake with a slice moved aside, showing your actual filling"
+    : "Your finished cake, ready to save";
+}
+function changeCut(slice, turn = false) {
+  stopEffect();
+  state.sliceView = slice;
+  if (turn) state.cutDirection = (state.cutDirection + 1) % 3;
+  save();
+  play("cut", updatePhoto);
+}
+$("#peek").onclick = () => changeCut(true);
+$("#wholeCake").onclick = () => changeCut(false);
+$("#turnCut").onclick = () => changeCut(true, true);
 function finish() {
   selected = null;
   presentation = true;
   $("#cakeName").value = state.name;
   play("finish", () => {
-    $("#resultImage").src = artwork().toDataURL("image/png");
+    updatePhoto();
     $("#result").showModal();
   });
 }
 $("#finish").onclick = finish;
 function edit() {
   presentation = false;
+  $("#sliceAnimation").hidden = true;
+  $("#resultImage").hidden = false;
   $("#result").close();
   play("scene");
 }
@@ -1116,7 +1190,7 @@ $("#cakeName").oninput = () => {
   state.name = $("#cakeName").value.trim().slice(0, 32) || "My little cake";
   save();
   paint();
-  $("#resultImage").src = artwork().toDataURL("image/png");
+  updatePhoto();
 };
 const fitCanvas = new ResizeObserver(([entry]) => {
   const { width, height } = entry.contentRect;

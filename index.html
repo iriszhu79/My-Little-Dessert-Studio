@@ -13,7 +13,7 @@
         ><span class="brand-icon" aria-hidden="true">♧</span
         ><span>My Little<br /><b>Dessert Studio</b></span></a
       ><span class="header-note"
-        >a little baking, a little daydreaming <small>v2.3</small></span
+        >a little baking, a little daydreaming <small>v2.4</small></span
       >
       <div class="header-actions">
         <span id="saved" role="status">Saved on this device</span
@@ -77,6 +77,13 @@
     <dialog id="result">
       <div class="eyebrow">MADE BY YOU, WITH LOVE</div>
       <h2>Your sweet little masterpiece.</h2>
+      <canvas
+        id="sliceAnimation"
+        width="1000"
+        height="900"
+        hidden
+        aria-hidden="true"
+      ></canvas>
       <img id="resultImage" alt="Your finished cake, ready to save" /><label
         class="name-field"
         for="cakeName"
@@ -86,7 +93,12 @@
           placeholder="My little cake"
           autocomplete="off"
       /></label>
-      <p>A little happiness, worth keeping.</p>
+      <div class="cut-controls" aria-label="Cake view">
+        <button id="peek" class="subtle">Peek inside</button
+        ><button id="wholeCake" class="subtle" hidden>Whole cake</button
+        ><button id="turnCut" class="subtle" hidden>Turn the cut</button>
+      </div>
+      <p id="cutNote" aria-live="polite">A little happiness, worth keeping.</p>
       <div class="result-actions">
         <button id="download">Save image</button
         ><button id="edit" class="subtle">Keep editing</button
