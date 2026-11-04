@@ -2,6 +2,8 @@
 
 This branch is a playable study, separate from the public v2.4 release. Do not merge it into `main` or run the Pages deployment before visual review. The existing Pages workflow only deploys pushes to `main`.
 
+The hosted `?demo=vanilla` entry skips importing a public recipe on the first visit so the new style is immediately visible. Existing preview progress still resumes; the public save stays untouched.
+
 ## Try it
 
 Run `npm ci`, `npm run build:preview`, then `npm run preview` and open `http://localhost:5174`. Alternatively, open the generated `dist-preview/vanilla-preview.html` in Chrome or Edge. It embeds its code and images and needs no network requests or package installation. If a browser/device blocks local HTML, serve it using `node server.js` or Python's HTTP server. To test on a phone, open the development server's forwarded port or the computer's LAN address on the same network.

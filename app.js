@@ -95,7 +95,10 @@ function valid(s) {
 let restored = false;
 try {
   const data = JSON.parse(
-    localStorage.getItem(KEY) || localStorage.getItem(LEGACY_KEY),
+    localStorage.getItem(KEY) ||
+      (new URLSearchParams(location.search).get("demo") === "vanilla"
+        ? null
+        : localStorage.getItem(LEGACY_KEY)),
   );
   if (valid(data)) {
     // Upgrade existing V1 works without losing any decorations.
