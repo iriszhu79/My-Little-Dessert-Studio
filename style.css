@@ -942,3 +942,44 @@ dialog button {
 [hidden] {
   display: none !important;
 }
+
+.frosting-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+.frosting-modes .option {
+  padding: 10px 8px;
+  border: 1px solid #c6aa8b60;
+  border-radius: 12px;
+}
+.frosting-modes .option.active {
+  background: #fff9ee;
+  border-color: #b17b7b;
+}
+.frosting-modes small {
+  display: block;
+  margin-top: 6px;
+  font-size: 10px;
+  line-height: 1.4;
+  color: #957a63;
+}
+@media (max-width: 900px) {
+  .frosting-modes {
+    max-width: 420px;
+  }
+}
+
+.loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: #f6eee0;
+  color: #94745c;
+  font:
+    italic 20px Georgia,
+    serif;
+}

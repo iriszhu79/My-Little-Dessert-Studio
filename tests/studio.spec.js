@@ -11,7 +11,9 @@ const stages = [
   "Scene",
 ];
 const saved = (p) =>
-  p.evaluate(() => JSON.parse(localStorage.getItem("little-dessert-v1")));
+  p.evaluate(() =>
+    JSON.parse(localStorage.getItem("little-dessert-painted-preview-v1")),
+  );
 const button = (p, n) => p.getByRole("button", { name: n, exact: true });
 async function settled(p) {
   await expect(p.locator(".workspace")).not.toHaveAttribute(
@@ -292,7 +294,9 @@ test("85% coating advances safely even while held, hover does not paint, and Und
     await expect(page.locator("#phaseTitle")).toHaveText(next);
     const raw = await page.evaluate(async (key) => {
       const { cakePath } = await import("/renderer.js"),
-        s = JSON.parse(localStorage.getItem("little-dessert-v1"));
+        s = JSON.parse(
+          localStorage.getItem("little-dessert-painted-preview-v1"),
+        );
       const a = document.createElement("canvas"),
         b = document.createElement("canvas");
       for (const c of [a, b]) {
@@ -579,7 +583,7 @@ test("legacy and malformed saves load safely; reset remains confirmed and persis
   await page.goto("/");
   await page.evaluate(() =>
     localStorage.setItem(
-      "little-dessert-v1",
+      "little-dessert-painted-preview-v1",
       JSON.stringify({
         shape: 1,
         cake: 2,
@@ -617,7 +621,7 @@ test("legacy and malformed saves load safely; reset remains confirmed and persis
   await page.reload();
   expect(await current(page)).toBe(0);
   await page.evaluate(() =>
-    localStorage.setItem("little-dessert-v1", "{broken"),
+    localStorage.setItem("little-dessert-painted-preview-v1", "{broken"),
   );
   await page.reload();
   await expect(page.locator("#welcome")).toBeVisible();
@@ -705,7 +709,11 @@ test("six original plates preserve the recipe, restore and export on all four sh
   ];
   for (let shape = 0; shape < 4; shape++) {
     await page.evaluate(
-      (s) => localStorage.setItem("little-dessert-v1", JSON.stringify(s)),
+      (s) =>
+        localStorage.setItem(
+          "little-dessert-painted-preview-v1",
+          JSON.stringify(s),
+        ),
       {
         ...seed,
         shape,
@@ -774,7 +782,7 @@ test("legacy pink plates migrate without losing decorations", async ({
   await page.evaluate(
     (s) =>
       localStorage.setItem(
-        "little-dessert-v1",
+        "little-dessert-painted-preview-v1",
         JSON.stringify({ ...s, schemaVersion: 3, plate: 2, stage: 6 }),
       ),
     seed,
@@ -785,7 +793,7 @@ test("legacy pink plates migrate without losing decorations", async ({
     "true",
   );
   await click(page, "Blue Ribbon");
-  expect((await saved(page)).schemaVersion).toBe(5);
+  expect((await saved(page)).schemaVersion).toBe(6);
 });
 
 test("single-layer route skips hidden filling and reserves finishing for decoration", async ({
@@ -862,7 +870,11 @@ test("slice previews follow real fillings, rotate, preserve the recipe, restore 
     },
   ];
   await page.evaluate(
-    (s) => localStorage.setItem("little-dessert-v1", JSON.stringify(s)),
+    (s) =>
+      localStorage.setItem(
+        "little-dessert-painted-preview-v1",
+        JSON.stringify(s),
+      ),
     {
       ...seed,
       stage: 7,
@@ -993,7 +1005,11 @@ test("legacy filling-stage recipes become double-layer cakes without losing work
     },
   ];
   await page.evaluate(
-    (s) => localStorage.setItem("little-dessert-v1", JSON.stringify(s)),
+    (s) =>
+      localStorage.setItem(
+        "little-dessert-painted-preview-v1",
+        JSON.stringify(s),
+      ),
     {
       ...seed,
       schemaVersion: 4,
@@ -1012,8 +1028,263 @@ test("legacy filling-stage recipes become double-layer cakes without losing work
   await expect(page.locator("#finish")).toBeDisabled();
   await click(page, "Cover with the second layer →");
   expect((await saved(page)).layered).toBe(true);
-  expect((await saved(page)).schemaVersion).toBe(5);
+  expect((await saved(page)).schemaVersion).toBe(6);
   expect((await saved(page)).fillingToppings).toEqual(filling);
   expect((await saved(page)).plate).toBe(5);
   expect((await saved(page)).cutDirection).toBe(0);
+});
+
+test("painted preview frosting modes preserve strokes, expose different sides and export moved strawberries", async ({
+  page,
+}, info) => {
+  test.setTimeout(90000);
+  const mobile = info.project.name === "mobile",
+    errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await start(page);
+  const seed = await saved(page);
+  const filling = [
+    {
+      id: "f",
+      type: "strawberryHalf",
+      x: 70,
+      y: 90,
+      scale: 1,
+      rotation: 0,
+      text: "",
+    },
+  ];
+  await page.evaluate(
+    (s) =>
+      localStorage.setItem(
+        "little-dessert-painted-preview-v1",
+        JSON.stringify(s),
+      ),
+    {
+      ...seed,
+      stage: 4,
+      layered: true,
+      baseCream: true,
+      fillingToppings: filling,
+    },
+  );
+  await page.reload();
+  await expect(button(page, "Top-only frosting")).toBeVisible();
+  await click(page, "Top-only frosting");
+  await partial(page, mobile);
+  const partialState = await saved(page);
+  expect(partialState.frostingMode).toBe("top");
+  expect(partialState.frosting.length).toBeGreaterThan(0);
+  await page.reload();
+  await expect(button(page, "Top-only frosting")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect((await saved(page)).frosting).toEqual(partialState.frosting);
+  await coat(page, mobile);
+  await expect(page.locator("#phaseTitle")).toHaveText("Decorate");
+  const side = () =>
+    page
+      .locator("#cake")
+      .evaluate((c) => [
+        ...c.getContext("2d").getImageData(450, 605, 100, 25).data,
+      ]);
+  const topOnly = await side();
+  const completedStrokes = (await saved(page)).frosting;
+  await click(page, "← Back");
+  await click(page, "Full frosting");
+  expect((await saved(page)).frosting).toEqual(completedStrokes);
+  const full = await side();
+  expect(full).not.toEqual(topOnly);
+  // Start a fresh Full coat to verify both choices work with actual gestures.
+  await click(page, "Vanilla");
+  expect((await saved(page)).frosting).toEqual([]);
+  await coat(page, mobile);
+  await click(page, "Strawberry");
+  await click(page, "Strawberry");
+  const before = (await saved(page)).toppings;
+  const t = before.at(-1);
+  const box = await page.locator("#cake").boundingBox();
+  const point = (x, y) => ({
+    x: box.x + ((500 + x) * box.width) / 1000,
+    y: box.y + ((402 + y) * box.height) / 900,
+  });
+  const a = point(t.x, t.y),
+    b = point(85, 45);
+  if (mobile) {
+    const client = await page.context().newCDPSession(page);
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [a],
+    });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [b],
+    });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+  } else {
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x, b.y, { steps: 8 });
+    await page.mouse.up();
+  }
+  const placed = (await saved(page)).toppings;
+  expect(placed.at(-1).x).not.toBe(t.x);
+  await click(page, "Make larger");
+  await click(page, "Rotate");
+  await click(page, "Delete");
+  expect((await saved(page)).toppings).toHaveLength(1);
+  await click(page, "Undo");
+  expect((await saved(page)).toppings).toHaveLength(2);
+  const recipe = await saved(page);
+  await page.reload();
+  await expect(page.locator("#phaseTitle")).toHaveText("Decorate");
+  expect((await saved(page)).toppings).toEqual(recipe.toppings);
+  await page.screenshot({ path: info.outputPath("painted-decorate.png") });
+  await page.locator("#finish").click();
+  await settled(page);
+  const download = page.waitForEvent("download");
+  await click(page, "Save image");
+  const png = await readFile(await (await download).path());
+  expect(
+    png.equals(
+      Buffer.from(
+        (await page.locator("#resultImage").getAttribute("src")).split(",")[1],
+        "base64",
+      ),
+    ),
+  ).toBe(true);
+  expect((await saved(page)).frostingMode).toBe("full");
+  expect(errors).toEqual([]);
+});
+
+test("painted preview loads all six originals and isolates public saves while keeping every shape and flavor", async ({
+  page,
+}) => {
+  await start(page);
+  const seed = await saved(page);
+  const original = JSON.stringify({
+    ...seed,
+    schemaVersion: 5,
+    stage: 5,
+    toppings: [
+      {
+        id: "old",
+        type: "text",
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+        text: "Keep me",
+      },
+    ],
+  });
+  await page.evaluate((value) => {
+    localStorage.removeItem("little-dessert-painted-preview-v1");
+    localStorage.setItem("little-dessert-v1", value);
+  }, original);
+  await page.reload();
+  await expect(page.locator("#phaseTitle")).toHaveText("Decorate");
+  await click(page, "Strawberry");
+  expect(
+    await page.evaluate(() => localStorage.getItem("little-dessert-v1")),
+  ).toBe(original);
+  const result = await page.evaluate(async () => {
+    const { demoAssets, isPaintedDemo } = await import("/painted-demo.js");
+    const assets = Object.entries(demoAssets)
+      .filter(([k]) => k !== "materials")
+      .map(([key, a]) => ({
+        key,
+        ready: a.image?.complete && a.image.naturalWidth > 0,
+      }));
+    const recipes = [];
+    for (let shape = 0; shape < 4; shape++)
+      for (let cake = 0; cake < 4; cake++)
+        recipes.push({
+          shape,
+          cake,
+          painted: isPaintedDemo({ shape, cake, customCake: null }),
+        });
+    return { assets, recipes };
+  });
+  expect(result.assets).toHaveLength(6);
+  expect(result.assets.every((a) => a.ready)).toBe(true);
+  expect(result.recipes.filter((r) => r.painted)).toEqual([
+    { shape: 0, cake: 0, painted: true },
+  ]);
+  await stage(page, "Sponge", false);
+  for (const shape of ["Heart", "Square", "Flower", "Round"])
+    await click(page, shape);
+  for (const flavor of ["Chocolate", "Strawberry", "Matcha", "Vanilla"])
+    await click(page, "Sponge color " + flavor);
+});
+
+test("painted standalone preview runs without external resource requests", async ({
+  page,
+}) => {
+  test.setTimeout(45000);
+  const errors = [],
+    requests = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.route("**/*", (route) => {
+    if (route.request().isNavigationRequest()) return route.continue();
+    requests.push(route.request().url());
+    return route.abort();
+  });
+  await page.goto("/dist-preview/vanilla-preview.html");
+  await button(page, "Start baking →").click();
+  await settled(page);
+  await click(page, "Place this sponge");
+  await click(page, "Keep one layer");
+  await expect(button(page, "Top-only frosting")).toBeVisible();
+  await click(page, "Top-only frosting");
+  expect((await saved(page)).frostingMode).toBe("top");
+  expect(requests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
+test("painted completion retains existing cream at the start of its finishing animation", async ({
+  page,
+}) => {
+  await start(page);
+  const identical = await page.evaluate(async () => {
+    const { render } = await import("/renderer.js");
+    const s = JSON.parse(
+      localStorage.getItem("little-dessert-painted-preview-v1"),
+    );
+    Object.assign(s, {
+      stage: 4,
+      layered: true,
+      baseCream: true,
+      frostingMode: "full",
+      frosted: false,
+      frosting: [
+        [
+          { x: 0, y: 0 },
+          { x: 80, y: 0 },
+        ],
+      ],
+    });
+    const a = document.createElement("canvas"),
+      b = document.createElement("canvas");
+    a.width = b.width = 1000;
+    a.height = b.height = 900;
+    render(a.getContext("2d"), s, { stage: 4, coverage: 86 });
+    render(
+      b.getContext("2d"),
+      { ...s, frosted: true },
+      {
+        stage: 4,
+        coverage: 86,
+        effect: { kind: "cream-complete", progress: 0 },
+      },
+    );
+    const x = a.getContext("2d").getImageData(480, 385, 40, 30).data,
+      y = b.getContext("2d").getImageData(480, 385, 40, 30).data;
+    return x.every((v, i) => v === y[i]);
+  });
+  expect(identical).toBe(true);
 });

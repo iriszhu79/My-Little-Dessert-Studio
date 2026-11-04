@@ -9,11 +9,14 @@ import {
   toppingNames,
   drawBowl,
   cutDetails,
+  isPaintedDemo,
+  loadDemoAssets,
 } from "./renderer.js";
 const $ = (s) => document.querySelector(s),
   canvas = $("#cake"),
   ctx = canvas.getContext("2d");
-const KEY = "little-dessert-v1";
+const KEY = "little-dessert-painted-preview-v1";
+const LEGACY_KEY = "little-dessert-v1";
 const fresh = () => ({
   shape: 0,
   cake: 0,
@@ -28,7 +31,8 @@ const fresh = () => ({
   frosted: false,
   frosting: [],
   stage: 0,
-  schemaVersion: 5,
+  schemaVersion: 6,
+  frostingMode: "full",
   sliceView: false,
   cutDirection: 0,
   baseCream: false,
@@ -90,7 +94,9 @@ function valid(s) {
 }
 let restored = false;
 try {
-  const data = JSON.parse(localStorage.getItem(KEY));
+  const data = JSON.parse(
+    localStorage.getItem(KEY) || localStorage.getItem(LEGACY_KEY),
+  );
   if (valid(data)) {
     // Upgrade existing V1 works without losing any decorations.
     state = { ...fresh(), ...data };
@@ -142,7 +148,8 @@ try {
       data.cutDirection < 3
         ? data.cutDirection
         : 0;
-    state.schemaVersion = 5;
+    state.frostingMode = data.frostingMode === "top" ? "top" : "full";
+    state.schemaVersion = 6;
     state.fillingToppings = state.fillingToppings.map((t) =>
       t.type === "mint" ? { ...t, type: "grapes" } : t,
     );
@@ -451,7 +458,14 @@ function bowls(p, first = false) {
     const icon = document.createElement("canvas");
     icon.width = 130;
     icon.height = 100;
-    drawBowl(icon.getContext("2d"), 65, 48, color, 0.58);
+    drawBowl(
+      icon.getContext("2d"),
+      65,
+      48,
+      color,
+      0.58,
+      isPaintedDemo(state) && i === 0,
+    );
     b.prepend(icon);
     row.append(b);
   });
@@ -482,7 +496,16 @@ function material(type) {
     mini = document.createElement("canvas");
   mini.width = 100;
   mini.height = 100;
-  drawTopping(mini.getContext("2d"), type, 50, 52, type === "text" ? 0.6 : 1.1);
+  drawTopping(
+    mini.getContext("2d"),
+    type,
+    50,
+    52,
+    type === "text" ? 0.6 : 1.1,
+    0,
+    "Happy Day",
+    isPaintedDemo(state),
+  );
   b.prepend(mini);
   let start = null,
     moved = false,
@@ -562,6 +585,26 @@ function panel() {
     label.style.marginTop = "20px";
     p.append(label);
     colorPicker(p, "cake", "Sponge color", cakeColors, spongeNames);
+  }
+  if (step === 4) {
+    const modes = document.createElement("div");
+    modes.className = "frosting-modes";
+    for (const [mode, label, description] of [
+      ["full", "Full frosting", "Cream on the top and sides"],
+      ["top", "Top-only frosting", "Keep the sponge and filling visible"],
+    ]) {
+      const b = button(label, state.frostingMode === mode, () => {
+        stopEffect();
+        change(() => {
+          state.frostingMode = mode;
+        });
+      });
+      const small = document.createElement("small");
+      small.textContent = description;
+      b.append(small);
+      modes.append(b);
+    }
+    p.append(modes);
   }
   if (step === 1 || step === 4) {
     bowls(p, step === 1);
@@ -1199,10 +1242,16 @@ const fitCanvas = new ResizeObserver(([entry]) => {
 });
 fitCanvas.observe($(".art-area"));
 try {
-  await loadPlateAssets();
+  const loaded = await Promise.allSettled([
+    loadPlateAssets(),
+    loadDemoAssets(),
+  ]);
+  if (loaded.some((result) => result.status === "rejected"))
+    throw new Error("Artwork unavailable");
 } catch {
-  toast("Some plate artwork could not load. Please refresh to try again.");
+  toast("Some artwork could not load. Please refresh to try again.");
 }
+$("#loading").hidden = true;
 const welcomeState = {
   ...fresh(),
   baseCream: true,

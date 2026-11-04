@@ -1,6 +1,6 @@
 {
   "name": "my-little-dessert-studio",
-  "version": "2.4.0",
+  "version": "2.5.0-preview.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,10 @@
     "start": "node server.js",
     "test": "playwright test",
     "format:check": "prettier --check .",
-    "build": "node scripts/build-site.js"
+    "build": "node scripts/build-site.js",
+    "build:preview": "node scripts/build-preview.js",
+    "preview": "PORT=5174 node server.js",
+    "test:preview": "playwright test --grep \"painted preview|painted standalone\""
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

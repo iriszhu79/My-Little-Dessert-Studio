@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile, readdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile, readdir, cp } from "node:fs/promises";
 import { resolve } from "node:path";
 
 // Fingerprint the entire module chain so old browser caches cannot mix releases.
@@ -12,6 +12,9 @@ async function asset(file, content) {
   return name;
 }
 await mkdir(resolve(output, "assets/plates"), { recursive: true });
+await cp("assets/painted", resolve(output, "assets/painted"), {
+  recursive: true,
+});
 let rendererSource = await readFile("renderer.js", "utf8");
 for (const file of await readdir("assets/plates")) {
   const content = await readFile(`assets/plates/${file}`);
@@ -21,6 +24,14 @@ for (const file of await readdir("assets/plates")) {
     `file: "${name.split("/").pop()}"`,
   );
 }
+const painted = await asset(
+  "painted-demo.js",
+  await readFile("painted-demo.js", "utf8"),
+);
+rendererSource = rendererSource.replace(
+  '"./painted-demo.js"',
+  `"./${painted}"`,
+);
 const renderer = await asset("renderer.js", rendererSource);
 const app = await asset(
   "app.js",

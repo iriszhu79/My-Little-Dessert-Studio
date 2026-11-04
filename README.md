@@ -1,5 +1,7 @@
 # My Little Dessert Studio
 
+This is the `preview/painted-vanilla` study branch. See [PREVIEW.md](PREVIEW.md) for the playable offline preview, the six supplied assets, two frosting modes, save isolation, and test coverage. The public release remains unchanged.
+
 An original, sunlit 2D baking game. Start with a bare sponge, spread cream, tuck in a little filling, and make a cake that feels like you. No timers, scores, accounts, or failure states.
 
 ## Run locally
@@ -19,7 +21,7 @@ The development server listens on port 5173 and accepts an optional `PORT` varia
 2. **Layers** — Illustrated single/double-layer options explain the choice. A single layer goes straight to Frost; fruit and lettering belong on top later, in Decorate. Two layers open Cream and Filling. Switching between these choices preserves existing fillings instead of deleting them.
 3. **Cream (two layers)** — Pick a cream bowl or custom color, then hold and sweep across the cake. The spatula follows the pointer or finger; hovering never paints. At 85%, the coat finishes and Filling opens automatically. Revisited coats offer “Keep this coat”.
 4. **Filling (two layers)** — A persistent “Inside, not on top” note explains that fruit will be sandwiched between sponges and revealed in the final slice. Add and drag fruit, chocolate, cookies, or macarons. “Cover with the second layer →” plays the falling-sponge transition and opens Frost. It is safe to leave the filling empty. The early Finish action is disabled until Decorate, so this middle step cannot accidentally appear to be the end of the game.
-5. **Frost** — Hand-spread a separate outer coat with the same spatula control and 85% completion rule. Each gesture, including its automatic finish, is one undo action. The sides gradually take on the cream color as coverage increases; reaching 85% automatically opens Decorate.
+5. **Frost** — In this study choose Full frosting or Top-only frosting before painting (details in PREVIEW.md). Hand-spread a separate outer coat with the same spatula control and 85% completion rule. Each gesture, including its automatic finish, is one undo action. The sides gradually take on the cream color as coverage increases; reaching 85% automatically opens Decorate.
 6. **Decorate** — All original fruit, sliced fruit, sweets, flowers, bows, pearls, cream piping, and custom lettering remain available. Enter a message of up to 20 characters, or use “Happy Day” / “For You”. Add multiple pieces, drag them, and select them to resize, rotate, or delete. On a keyboard, arrow keys move a selected decoration; Delete / Backspace removes it. Clear requires confirmation and can be undone. Select “Ready to plate” after arranging your decorations.
 7. **Plate** — Compare six plates without losing anything: Classic Ivory (the existing cream porcelain with gold dots), Blue Ribbon, Matcha Dots, Pink Gingham, Blue Stripes, and Garden Flowers. Select “Set the scene” when ready.
 8. **Scene** — Choose Cream linen, Pink gingham, Warm wood, or Garden picnic. Selecting a scene opens the final photo with a small pull-back. Name the cake, and export a 1000 × 900 PNG containing only the artwork. Mobile users can also press and hold the finished image.
@@ -36,7 +38,7 @@ The game guides players forward after completing each stage. Free-form filling a
 
 ## Autosave and privacy
 
-Every edit is saved locally under `little-dessert-v1`. The current stage, independent cream strokes, single/double-layer choice, fillings, decorations, colors, plating, scene, and cake name survive refresh. Undo history does not survive refresh. No artwork or personal data is uploaded.
+The public v2.4 release saves under `little-dessert-v1`. This study reads that legacy entry only if needed, and saves edits separately under `little-dessert-painted-preview-v1`. The current stage, independent cream strokes, single/double-layer choice, fillings, decorations, colors, plating, scene, and cake name survive refresh. Undo history does not survive refresh. No artwork or personal data is uploaded.
 
 Old recipes saved in Cream or Filling are migrated to the double-layer route so their interior work remains intact. Stage IDs are retained while their visible order changes, preserving later-stage saves. Legacy invalid cut settings fall back safely.
 
@@ -52,7 +54,7 @@ npm run format:check
 npm run build
 ```
 
-Playwright defines 32 desktop / Pixel 7 browser cases covering the full baking ritual, pointer-following spatulas, real partial strokes, independent raster checks of 85% auto-completion, explicit layering, backtracking, native touch and mouse gestures, ingredient placement, resizing, rotation, deletion, confirmed clear/reset, custom lettering and colors, all plates and scenes, the removed Slice stage, green grapes, viewport fitting, fixed bottom actions, non-overlapping scene backgrounds, automatic stage changes (including held pointers and throttled animation frames), frameless layout, reduced motion, English interface copy, migration, damaged saves, disabled storage, single-layer skip routing, cut intersections on every silhouette, slice/whole switching, cut-angle persistence, legacy filling migration, and PNG dimensions and pixel agreement with the final preview.
+Playwright defines 40 desktop / Pixel 7 browser cases covering the full baking ritual, pointer-following spatulas, real partial strokes, independent raster checks of 85% auto-completion, explicit layering, backtracking, native touch and mouse gestures, ingredient placement, resizing, rotation, deletion, confirmed clear/reset, custom lettering and colors, all plates and scenes, the removed Slice stage, green grapes, viewport fitting, fixed bottom actions, non-overlapping scene backgrounds, automatic stage changes (including held pointers and throttled animation frames), frameless layout, reduced motion, English interface copy, migration, damaged saves, disabled storage, single-layer skip routing, cut intersections on every silhouette, slice/whole switching, cut-angle persistence, legacy filling migration, and PNG dimensions and pixel agreement with the final preview.
 
 Layout checks include 1440×900, 1366×768, 1280×720, 1024×600, 390×844, and 320×640 viewports. The page itself does not scroll; exceptionally small screens may scroll within the material area without visible scroll rails. Reports/screenshots are generated in ignored `test-results/`. Mobile coverage uses Chromium device emulation and native touch events; real iOS / Safari hardware is not yet verified.
 
